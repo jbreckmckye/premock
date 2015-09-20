@@ -6,9 +6,9 @@ function createProxy(getImplementation, callStore) {
 		var implementation = getImplementation();
 
 		if (implementation) {
-			implementation.apply(null, args);
+			implementation.apply(this, args);
 		} else {
-			callStore.record(args);
+			callStore.record(this, args);
 		}
 	};
 }
