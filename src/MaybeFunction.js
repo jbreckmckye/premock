@@ -1,19 +1,21 @@
 module.exports = FutureFunction;
 
-function FutureFunction(fnPromise) {
+function FutureFunction(onResolve, fnPromise) {
+	var that = this;
 	var realFunction = null;
-
-	if(fnPromise && fnPromise.then) {
-		fnPromise.then(function(fn){
-			realFunction = fn;
-		});
-	}
 
 	this.resolveImplementation = function(fn) {
 		realFunction = fn;
+		onResolve();
 	};
 
 	this.getImplementation = function() {
 		return realFunction;
 	};
+
+	if(fnPromise && fnPromise.then) {
+		fnPromise.then(function(fn){
+			that.resolveImplementation(fn);
+		});
+	}
 }
