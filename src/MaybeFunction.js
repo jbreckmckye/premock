@@ -1,6 +1,6 @@
-module.exports = FutureFunction;
+module.exports = MaybeFunction;
 
-function FutureFunction(onResolve, fnPromise) {
+function MaybeFunction(onResolve) {
 	var that = this;
 	var realFunction = null;
 
@@ -12,10 +12,4 @@ function FutureFunction(onResolve, fnPromise) {
 	this.getImplementation = function() {
 		return realFunction;
 	};
-
-	if(fnPromise && fnPromise.then) {
-		fnPromise.then(function(fn){
-			that.resolveImplementation(fn);
-		});
-	}
 }

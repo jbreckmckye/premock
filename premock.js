@@ -13,19 +13,15 @@ function CallStore() {
 	};
 }
 },{}],2:[function(require,module,exports){
-module.exports = FutureFunction;
+module.exports = MaybeFunction;
 
-function FutureFunction(fnPromise) {
+function MaybeFunction(onResolve) {
+	var that = this;
 	var realFunction = null;
-
-	if(fnPromise && fnPromise.then) {
-		fnPromise.then(function(fn){
-			realFunction = fn;
-		});
-	}
 
 	this.resolveImplementation = function(fn) {
 		realFunction = fn;
+		onResolve();
 	};
 
 	this.getImplementation = function() {
@@ -50,17 +46,22 @@ function createProxy(getImplementation, callStore) {
 },{}],4:[function(require,module,exports){
 module.exports = premock;
 
-var FutureFunction = require('./FutureFunction.js');
+var MaybeFunction = require('./MaybeFunction.js');
 var CallStore = require('./CallStore.js');
 var createProxy = require('./createProxy.js');
 
 function premock(promise) {
-	var futureFunction = new FutureFunction(promise);
+	var maybeFunction = new MaybeFunction(onImplemented, promise);
 	var callStore = new CallStore();
-	var proxy = createProxy(futureFunction.getImplementation, callStore);
-	proxy.resolveImplementation = futureFunction.resolveImplementation;
+	var proxy = createProxy(maybeFunction.getImplementation, callStore);
+	proxy.resolveImplementation = maybeFunction.resolveImplementation;
 
 	return proxy;
+
+	function onImplemented() {
+		// todo - replay historical calls. It's a pretty important todo!
+	}
+
 }
-},{"./CallStore.js":1,"./FutureFunction.js":2,"./createProxy.js":3}]},{},[4])(4)
+},{"./CallStore.js":1,"./MaybeFunction.js":2,"./createProxy.js":3}]},{},[4])(4)
 });

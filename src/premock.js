@@ -1,14 +1,14 @@
 module.exports = premock;
 
-var FutureFunction = require('./FutureFunction.js');
+var MaybeFunction = require('./MaybeFunction.js');
 var CallStore = require('./CallStore.js');
 var createProxy = require('./createProxy.js');
 
 function premock(promise) {
-	var futureFunction = new FutureFunction(onImplemented, promise);
+	var maybeFunction = new MaybeFunction(onImplemented, promise);
 	var callStore = new CallStore();
-	var proxy = createProxy(futureFunction.getImplementation, callStore);
-	proxy.resolveImplementation = futureFunction.resolveImplementation;
+	var proxy = createProxy(maybeFunction.getImplementation, callStore);
+	proxy.resolveImplementation = maybeFunction.resolveImplementation;
 
 	return proxy;
 
