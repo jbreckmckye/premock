@@ -3,10 +3,11 @@ module.exports = CallStore;
 function CallStore() {
 	var calls = [];
 
-	this.record = function record(thisBinding, callArguments) {
+	this.record = function record(thisBinding, callArguments, onExecuted) {
 		calls.push({
 			thisBinding: thisBinding, 
-			callArguments : callArguments
+			callArguments : callArguments,
+			onExecuted : onExecuted
 		});
 	};
 

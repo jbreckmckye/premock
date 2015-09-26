@@ -17,8 +17,24 @@ describe('createProxy', ()=> {
 			mockGetImplementation = ()=> {return mockImplementation};
 			mockCallStore = {
 				record : jasmine.createSpy('mockCallStore.record')
-			};			
+			};
+			createProxy._Promise = window.Promise;		
 		});
+
+		it('Returns undefined if it cannot use Promises', ()=> {
+			createProxy._Promise = undefined;
+
+			proxy = createProxy(mockGetImplementation, mockCallStore);
+			expect(proxy()).toBeUndefined();
+		});
+
+		it('Returns a promise if it can use Promises', ()=> {
+			function MockPromise() {};
+			createProxy._Promise = MockPromise;
+
+			proxy = createProxy(mockGetImplementation, mockCallStore);
+			expect(proxy()).toEqual(jasmine.any(MockPromise));
+		})
 
 		describe('When the implementation does not yet exist', ()=> {
 			beforeEach(()=> {
@@ -45,6 +61,17 @@ describe('createProxy', ()=> {
 				const recordArgs = mockCallStore.record.calls.mostRecent().args;
 
 				expect(recordArgs[1]).toEqual([123, 456]);
+			});
+
+			it('a resolver for the returned promise is passed as the third argument', (done)=> {
+				const callPromise = proxy();
+				const recordArgs = mockCallStore.record.calls.mostRecent().args;
+				const resolver = recordArgs[2];
+
+				expect(resolver).toEqual(jasmine.any(Function));
+
+				callPromise.then(done); // fails test if not called
+				resolver();
 			});
 		});
 
@@ -79,6 +106,22 @@ describe('createProxy', ()=> {
 				const callBrokenImplementation = ()=> {proxy()};
 				expect(callBrokenImplementation).toThrowError('Mock error string');
 			})
+
+			it('resolves the returned promise immediately', (done)=> {
+				const callPromise = proxy();
+				callPromise.then(done); // fails test if not called
+			}, 50);
+
+			it('the promise is resolved with the return value of the call', (done)=> {
+				mockImplementation = ()=> {
+					return 'foo'
+				};
+				const callPromise = proxy();
+				callPromise.then(function(resolvedValue){
+					expect(resolvedValue).toBe('foo');
+					done();
+				});
+			});
 		});
 	});
 });

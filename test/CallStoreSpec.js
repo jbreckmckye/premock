@@ -15,12 +15,13 @@ describe('CallStore', ()=> {
 			expect(store.record).toEqual(jasmine.any(Function));
 		});
 
-		it('can take the binding and args-array of a function call', ()=> {
+		it('can take the binding, args-array and an onExecute callback for a recorded function call', ()=> {
 			const mockThisBinding = {};
 			const mockCallArguments = [123, 456];
+			const mockOnExecutedCallback = ()=> {};
 
 			expect(()=> {
-				store.record(mockThisBinding, mockCallArguments);
+				store.record(mockThisBinding, mockCallArguments, mockOnExecutedCallback);
 			}).not.toThrow();
 		});
 
@@ -50,14 +51,6 @@ describe('CallStore', ()=> {
 			expect(store.getCalls().length).toEqual(2);
 		});
 
-		it('the entry is an object with a this binding and call arguments', ()=> {
-			store.record({}, []);
-			const firstCall = store.getCalls()[0];
-
-			expect(firstCall.thisBinding).toBeDefined();
-			expect(firstCall.callArguments).toBeDefined();
-		});
-
 		it('the first item of the entry is the binding object', ()=> {
 			const mockThisBinding = {};
 			store.record(mockThisBinding, []);
@@ -72,6 +65,14 @@ describe('CallStore', ()=> {
 			const firstCall = store.getCalls()[0];
 
 			expect(firstCall.callArguments).toEqual(mockCallArguments);
+		});
+
+		it('the third item of the entry equals the onExecute callback', ()=> {
+			const mockOnExecutedCallback = ()=> {};
+			store.record({}, [], mockOnExecutedCallback);
+			const firstCall = store.getCalls()[0];
+
+			expect(firstCall.onExecuted).toBe(mockOnExecutedCallback);
 		});
 
 		it('operations on the returned array do not affect subsequent returned arrays', ()=> {

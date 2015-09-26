@@ -10,9 +10,9 @@ function premock(promise) {
 	var callStore = new CallStore();	
 	var proxy = createProxy(maybeFunction.getImplementation, callStore);
 
-	proxy.resolveImplementation = maybeFunction.resolveImplementation;
+	proxy.resolve = maybeFunction.resolveImplementation;
 	if (promise && promise.then) {
-		promise.then(maybeFuction.resolveImplementation);
+		promise.then(maybeFunction.resolveImplementation);
 	}
 
 	return proxy;
