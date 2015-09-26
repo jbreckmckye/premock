@@ -5,8 +5,10 @@ function MaybeFunction(onResolve) {
 	var realFunction = null;
 
 	this.resolveImplementation = function(fn) {
-		realFunction = fn;
-		onResolve();
+		if (realFunction === null) {
+			realFunction = fn;
+			onResolve(realFunction);
+		}		
 	};
 
 	this.getImplementation = function() {

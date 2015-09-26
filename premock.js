@@ -5,7 +5,10 @@ function CallStore() {
 	var calls = [];
 
 	this.record = function record(thisBinding, callArguments) {
-		calls.push([thisBinding, callArguments]);
+		calls.push({
+			thisBinding: thisBinding, 
+			callArguments : callArguments
+		});
 	};
 
 	this.getCalls = function getCalls() {
@@ -20,8 +23,10 @@ function MaybeFunction(onResolve) {
 	var realFunction = null;
 
 	this.resolveImplementation = function(fn) {
-		realFunction = fn;
-		onResolve();
+		if (realFunction === null) {
+			realFunction = fn;
+			onResolve(realFunction);
+		}		
 	};
 
 	this.getImplementation = function() {
@@ -44,24 +49,47 @@ function createProxy(getImplementation, callStore) {
 	};
 }
 },{}],4:[function(require,module,exports){
+module.exports = defer;
+
+function defer(fn) {
+	window.setTimeout(fn, 0);
+}
+},{}],5:[function(require,module,exports){
 module.exports = premock;
 
 var MaybeFunction = require('./MaybeFunction.js');
 var CallStore = require('./CallStore.js');
 var createProxy = require('./createProxy.js');
+var replayCalls = require('./replayCalls.js');
 
 function premock(promise) {
-	var maybeFunction = new MaybeFunction(onImplemented, promise);
-	var callStore = new CallStore();
+	var maybeFunction = new MaybeFunction(onImplemented);
+	var callStore = new CallStore();	
 	var proxy = createProxy(maybeFunction.getImplementation, callStore);
+
 	proxy.resolveImplementation = maybeFunction.resolveImplementation;
+	if (promise && promise.then) {
+		promise.then(maybeFuction.resolveImplementation);
+	}
 
 	return proxy;
 
-	function onImplemented() {
-		// todo - replay historical calls. It's a pretty important todo!
+	function onImplemented(implementation) {
+		replayCalls(callStore.getCalls(), implementation);
 	}
-
 }
-},{"./CallStore.js":1,"./MaybeFunction.js":2,"./createProxy.js":3}]},{},[4])(4)
+},{"./CallStore.js":1,"./MaybeFunction.js":2,"./createProxy.js":3,"./replayCalls.js":6}],6:[function(require,module,exports){
+module.exports = replayCalls;
+
+var defer = require('./defer.js');
+
+function replayCalls(calls, implementation) {
+	// We give each call its own event so that if one throws an exception, the others still run
+	calls.forEach(function(call){
+		defer(function(){
+			implementation.apply(call.thisBinding, call.callArguments);
+		});
+	});
+}
+},{"./defer.js":4}]},{},[5])(5)
 });

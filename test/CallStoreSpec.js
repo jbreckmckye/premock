@@ -50,12 +50,12 @@ describe('CallStore', ()=> {
 			expect(store.getCalls().length).toEqual(2);
 		});
 
-		it('each entry is an array with two elements', ()=> {
+		it('the entry is an object with a this binding and call arguments', ()=> {
 			store.record({}, []);
-			store.record({}, []);
+			const firstCall = store.getCalls()[0];
 
-			expect(store.getCalls()[0].length).toEqual(2);
-			expect(store.getCalls()[1].length).toEqual(2);
+			expect(firstCall.thisBinding).toBeDefined();
+			expect(firstCall.callArguments).toBeDefined();
 		});
 
 		it('the first item of the entry is the binding object', ()=> {
@@ -63,7 +63,7 @@ describe('CallStore', ()=> {
 			store.record(mockThisBinding, []);
 			const firstCall = store.getCalls()[0];
 
-			expect(firstCall[0]).toBe(mockThisBinding);
+			expect(firstCall.thisBinding).toBe(mockThisBinding);
 		});
 
 		it('the second item of the entry equals the call arguments', ()=> {
@@ -71,7 +71,7 @@ describe('CallStore', ()=> {
 			store.record({}, mockCallArguments);
 			const firstCall = store.getCalls()[0];
 
-			expect(firstCall[1]).toEqual(mockCallArguments);
+			expect(firstCall.callArguments).toEqual(mockCallArguments);
 		});
 
 		it('operations on the returned array do not affect subsequent returned arrays', ()=> {
