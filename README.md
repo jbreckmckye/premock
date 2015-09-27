@@ -2,9 +2,7 @@
 Store up commands for a function that doesn't yet exist, and run those commands once it does.
 
 ## What is this for?
-Working on the web, we don't always have our JavaScript dependencies available at the time we'd ideally like to use them. Maybe our dependency is in an asynchronously loaded script. Or maybe we're not sure if it'll always load quickly.
-
-We could use promises, of course, but then everything has to be wrapped in a `then` value. Wouldn't it be nice if we could pretend that they exist, and call them like ordinary functions?
+Working on the web, we don't always have our JavaScript dependencies available at the time we'd ideally like to use them. Maybe our dependency is in an asynchronously loaded script. Or maybe we're not sure if it'll always load quickly. Wouldn't it be nice if we could pretend that they exist, and call them like ordinary functions?
 
 Well, with Premock, you can.
 
