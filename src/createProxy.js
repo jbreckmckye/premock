@@ -26,7 +26,6 @@ function createProxy(getImplementation, callStore) {
 			callStore.record(this, args, onRealCall);
 		}
 
-		return callPromise;
+		return callPromise || undefined;
 	};
 }
-
