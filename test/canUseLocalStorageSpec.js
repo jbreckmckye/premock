@@ -1,6 +1,7 @@
 'use strict';
 
 let canUseLocalStorage = require('../src/canUseLocalStorage');
+const MockStorage = require('./MockStorage');
 
 describe('canUseLocalStorage', ()=> {
     beforeEach(()=> {
@@ -67,9 +68,3 @@ describe('canUseLocalStorage', ()=> {
         });
     });
 });
-
-function MockStorage() {
-    this.setItem = ()=> {};
-    this.getItem = ()=> {};
-    this.removeItem = ()=> {};
-}
