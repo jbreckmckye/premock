@@ -4,33 +4,143 @@ const CallPersistence = require('../src/CallPersistence.js');
 const MockStorage = require('./MockStorage');
 
 describe('CallPersistence', ()=> {
-    let callPersister;
+    let callPersister, mockStorage;
     beforeEach(()=> {
-        CallPersistence._storage = new MockStorage();
+        mockStorage = new MockStorage();
+        spyOn(mockStorage, 'setItem');
+
+        CallPersistence._storage = mockStorage;
         callPersister = new CallPersistence('something');
     });
 
-    it('Initially returns an empty array of calls', ()=> {
-        expect(callPersister.getParametersPerCall()).toEqual([]);
+    describe('It saves calls into the storage item', ()=> {
+
+        it('Saves the call data under the key we initialize it with', ()=> {
+            callPersister.record([]);
+
+            const storageAction = mockStorage.setItem.calls.mostRecent();
+            const storageActionKey = storageAction.args[0];
+
+            expect(storageActionKey).toBe('something');
+        });
+
+        it('Accompanies that key with a serialized array, which details all the calls', ()=> {
+            callPersister.record([]);
+
+            const storageAction = mockStorage.setItem.calls.mostRecent();
+            const storageActionValue = storageAction.args[1];
+            const parsedStorageValue = JSON.parse(storageActionValue);
+
+            expect(parsedStorageValue).toEqual(jasmine.any(Array));            
+        });
+
+        it('The call records are themselves the arrays we push to .record', ()=> {
+            callPersister.record([1,2,3]);
+            callPersister.record([4,5,6]);
+
+            const storageAction = mockStorage.setItem.calls.mostRecent();
+            const storageActionValue = storageAction.args[1];
+            const parsedStorageValue = JSON.parse(storageActionValue);
+
+            expect(parsedStorageValue).toEqual([[1,2,3],[4,5,6]]);
+        });
+
+        it('If the localstorage records already have members, it can append new ones', ()=> {
+            mockStorage.getItem = ()=> {
+                return '[[1,2,3]]';
+            };
+            callPersister = new CallPersistence('foo');
+            callPersister.record([4,5,6]);
+
+            const storageAction = mockStorage.setItem.calls.mostRecent();
+            const storageActionValue = storageAction.args[1];
+            const parsedStorageValue = JSON.parse(storageActionValue);
+
+            expect(parsedStorageValue).toEqual([[1,2,3],[4,5,6]]);
+        });
+
     });
 
-    it('Allows us to record call parameter lists', ()=> {
-        expect(function recordSingleParam() {
-            callPersister.record(['foo'])
-        }).not.toThrow();
+    describe('It lets us retreive recorded calls', ()=> {
 
-        expect(function recordMultipleParams() {
-            callPersister.record(['foo', 'bar'])
-        }).not.toThrow();
+        it('If localstorage is empty, getParametersPerCall gives us an empty array', ()=> {
+            const retrieval = callPersister.getParametersPerCall();
+            expect(retrieval).toEqual([]);
+        });
 
-        expect(function recordNoParams() {
-            callPersister.record([])
-        }).not.toThrow();
+        it('If localstorage has contents, getParametersPerCall gives us the contents under that key', ()=> {
+            const storeContents = [[1,2,3],[4,5,6]];
+            mockStorage.getItem = (key)=> {
+                if (key === 'foo') {
+                    return JSON.stringify(storeContents);
+                } else {
+                    return '[[]]';
+                }
+            };
+            callPersister = new CallPersistence('foo');
+            const retrieval = callPersister.getParametersPerCall();
+            expect(retrieval).toEqual(storeContents);
+        });
+
+        it('If localstorage has contents, and we add more records, getParametersPerCall will retrieve everything', ()=> {
+            mockStorage.getItem = ()=> {
+                return '[[1,2,3]]';
+            };
+            callPersister = new CallPersistence('foo');
+            callPersister.record([4,5,6]);
+
+            const retrieval = callPersister.getParametersPerCall();
+            expect(retrieval).toEqual([[1,2,3],[4,5,6]]);
+        });
+
+        it('Mutating the retrieved array has no effect on subsequent retrievals', ()=> {
+            let firstRetrieval = callPersister.getParametersPerCall();
+            firstRetrieval.push('foo');
+            const secondRetrieval = callPersister.getParametersPerCall();
+            expect(secondRetrieval).toEqual([]);
+        });
     });
 
-    // xit : recorded call is put in storage
-    // xit : stored call can be deserialized
-    // xit : returned lists can be mutated safely
-    // xit : storage errors don't break stuff
+    it('Allows us to remove items at an index', ()=> {
+        callPersister.record([0]);
+        callPersister.record([1]);
+        callPersister.record([2]);
 
+        callPersister.remove(1);
+        const retrieval = callPersister.getParametersPerCall();
+        expect(retrieval).toEqual([[0],[2]]);
+    });
+
+    describe('Fault tolerance', ()=> {
+        it('If recording begins throwing an exception (e.g. storage fills up), those errors are not swallowed', ()=> {
+            mockStorage.setItem = ()=> {throw new Error('Mock storage error')};
+            callPersister = new CallPersistence('foo');
+            const attemptForlornRecording = ()=> {
+                callPersister.record([]);
+            };
+            expect(attemptForlornRecording).toThrow(new Error('Mock storage error'));
+        });
+
+        it('If recording begins throwing an exception (e.g. storage has filled up), getParametersPerCall returns only the successful recordings', ()=> {
+            let setItemThrowsError = false;
+            mockStorage.setItem = ()=> {
+                if (setItemThrowsError) {
+                    throw new Error('Mock storage error');
+                }
+            };
+
+            callPersister = new CallPersistence('foo');
+            
+            callPersister.record([0]);
+            setItemThrowsError = true;
+            try {
+                callPersister.record([1]);
+            } catch (e) {
+                // We know this is going to fail
+            }
+            
+            const retrieval = callPersister.getParametersPerCall();
+            expect(retrieval).toEqual([[0]]);
+        });
+    });
 });

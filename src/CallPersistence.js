@@ -2,19 +2,27 @@ module.exports = CallPersistence;
 
 CallPersistence._storage = window.localStorage;
 
+/**
+ * CallPersistence: save the details of function calls to localStorage,
+ * and let us fish them out, too.
+ * @param string storageKey - key our calls will be stored against
+ */
 function CallPersistence(storageKey) {
     var storage = CallPersistence._storage;
     var existingRecords = storage.getItem(storageKey);
     var parametersPerCall = existingRecords ? JSON.parse(existingRecords) : [];
 
     this.record = function record(callArgs) {
-        // We create a draft state and try to save it, so that storage errors don't
-        // pull the in-memory list and the persisted list out of sync
-        var newParametersPerCall = clone(parametersPerCall);
-        newParametersPerCall.push(callArgs);
+        // We create a backup state, so we can recover from storage errors
+        var backupParametersPerCall = clone(parametersPerCall);
+        parametersPerCall.push(callArgs);
         // This might throw an error if storage is full
-        updatePersistence();
-        parametersPerCall = newParametersPerCall;
+        try {
+            updatePersistence();
+        } catch (e) {
+            parametersPerCall = backupParametersPerCall;
+            throw e;
+        }
     };
 
     this.getParametersPerCall = function getParametersPerCall() {
