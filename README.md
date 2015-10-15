@@ -76,4 +76,4 @@ Just take the `premock.js` file at the root of this project and include it in yo
 
 ## Cross-page persistence
 
-One thing that might be interesting is if premock could persist calls in localstorage or similar - so that calls could be premocked across entire pageviews! Obviously, this would only really work with functions that only had side effects, like making logging calls to a server. And the call arguments would have to be serializable. _This is currently in development: see the 'local-persistence' branch for details.
+One thing that might be interesting is if premock could persist calls in localstorage or similar - so that calls could be premocked across entire pageviews! Obviously, this would only really work with functions that only had side effects, like making logging calls to a server. And the call arguments would have to be serializable. _This is currently in development: see the 'local-persistence' branch for details._
