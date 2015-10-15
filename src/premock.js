@@ -1,14 +1,14 @@
 module.exports = premock;
 
 var MaybeFunction = require('./MaybeFunction.js');
-var CallStore = require('./CallStore.js');
+var HeapCallStore = require('./HeapCallStore.js');
 var createProxy = require('./createProxy.js');
 var replayCalls = require('./replayCalls.js');
 
 function premock(promise) {
 	var maybeFunction = new MaybeFunction(onImplemented);
-	var callStore = new CallStore();	
-	var proxy = createProxy(maybeFunction.getImplementation, callStore);
+	var heapCallStore = new HeapCallStore();
+	var proxy = createProxy(maybeFunction.getImplementation, heapCallStore);
 
 	proxy.resolve = maybeFunction.resolveImplementation;
 	if (promise && promise.then) {
@@ -18,6 +18,6 @@ function premock(promise) {
 	return proxy;
 
 	function onImplemented(implementation) {
-		replayCalls(callStore.getCalls(), implementation);
+		replayCalls(heapCallStore.getCalls(), implementation);
 	}
 }
