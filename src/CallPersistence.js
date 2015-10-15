@@ -5,7 +5,7 @@ CallPersistence._storage = window.localStorage;
 /**
  * CallPersistence: save the details of function calls to localStorage,
  * and let us fish them out, too.
- * @param string storageKey - key our calls will be stored against
+ * @param storageKey String: key our calls will be stored against
  */
 function CallPersistence(storageKey) {
     var storage = CallPersistence._storage;
@@ -31,8 +31,10 @@ function CallPersistence(storageKey) {
 
     this.remove = function remove(element) {
         var elementIndex = parametersPerCall.indexOf(element);
-        parametersPerCall.splice(elementIndex, 1);
-        updatePersistence();
+        if (elementIndex !== -1) {
+            parametersPerCall.splice(elementIndex, 1);
+            updatePersistence();
+        }
     };
 
     function updatePersistence() {

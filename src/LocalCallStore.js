@@ -28,23 +28,11 @@ function LocalCallStore(storageKey) {
             return {
                 thisBinding : undefined,
                 callArguments : call,
-                onExecuted : once(function() {
+                onExecuted : function() {
                     // we want to delete call records at the moment they complete, but not a second earlier
                     callPersistence.remove(call);
-                })
+                }
             };
         });
-    };
-}
-
-function once(fn) {
-    var hasRun = false;
-    return function() {
-        if (hasRun === false) {
-            hasRun = true;
-            fn();
-        } else {
-            // do nothing
-        }
     };
 }
