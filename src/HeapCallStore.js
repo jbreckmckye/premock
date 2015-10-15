@@ -12,6 +12,7 @@ function HeapCallStore() {
 	};
 
 	this.getCalls = function getCalls() {
-		return calls.slice(0); // clone
+		// Use slice to clone
+		return calls.slice(0);
 	};
 }
