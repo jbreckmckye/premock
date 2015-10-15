@@ -29,8 +29,9 @@ function CallPersistence(storageKey) {
         return clone(parametersPerCall);
     };
 
-    this.remove = function remove(index) {
-        parametersPerCall.splice(index, 1);
+    this.remove = function remove(element) {
+        var elementIndex = parametersPerCall.indexOf(element);
+        parametersPerCall.splice(elementIndex, 1);
         updatePersistence();
     };
 

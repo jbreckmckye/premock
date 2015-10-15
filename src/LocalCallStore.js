@@ -27,11 +27,11 @@ function LocalCallStore(storageKey) {
         return calls.map(function (call, index) {
             // Return in a replayable format
             return {
-                thisBinding : null,
+                thisBinding : undefined,
                 callArguments : call,
                 onExecuted : once(function() {
                     // we want to delete call records at the moment they complete, but not a second earlier
-                    callPersistence.remove(index);
+                    callPersistence.remove(call);
                 })
             };
         });
