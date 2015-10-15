@@ -48,6 +48,8 @@ If Premock is run in an environment with promises (that is, where `window.Promis
     premocked.resolve(greeter);
     // 'Hello, Kathy!' printed to console
 
+If Premock is run in an environment _without_ promises, mocks will return `undefined` until the implementation is resolved - at which point it'll just pass the results back on.
+
 
 ## Resolving with promises
 
