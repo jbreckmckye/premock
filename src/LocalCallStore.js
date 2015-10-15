@@ -22,10 +22,9 @@ function LocalCallStore(storageKey) {
         callPersistence.recordArgs(serializedArgs);
     };
 
-    this.getParametersPerCall = function getCalls() {
+    this.getCalls = function getCalls() {
         var calls = callPersistence.getParametersPerCall();
-        return calls.map(function (call, index) {
-            // Return in a replayable format
+        return calls.map(function (call) {
             return {
                 thisBinding : undefined,
                 callArguments : call,
