@@ -19,7 +19,7 @@ function LocalCallStore(storageKey) {
             throw new Error('Premock: could not serialize the call`s arguments. Perhaps they include a circular reference?');
         }
 
-        callPersistence.recordArgs(serializedArgs);
+        callPersistence.record(serializedArgs);
     };
 
     this.getCalls = function getCalls() {
