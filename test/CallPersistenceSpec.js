@@ -101,14 +101,20 @@ describe('CallPersistence', ()=> {
         });
     });
 
-    it('Allows us to remove items at an index', ()=> {
-        callPersister.record([0]);
-        callPersister.record([1]);
-        callPersister.record([2]);
+    it('Allows us to remove an item', ()=> {
+        const argSets = [
+            [1,2,3],
+            [4,5,6],
+            [7,8,9]
+        ];
 
-        callPersister.remove(1);
+        callPersister.record(argSets[0]);
+        callPersister.record(argSets[1]);
+        callPersister.record(argSets[2]);
+
+        callPersister.remove(argSets[1]);
         const retrieval = callPersister.getParametersPerCall();
-        expect(retrieval).toEqual([[0],[2]]);
+        expect(retrieval).toEqual([[1,2,3],[7,8,9]]);
     });
 
     describe('Fault tolerance', ()=> {
