@@ -12,7 +12,9 @@ function replayCalls(calls, implementation) {
 		var thisBinding = call.thisBinding || null; // Calls from previous pages will lack bindings
 		defer(function(){
 			result = implementation.apply(thisBinding, call.callArguments);
-			call.onExecuted(result);
+			if (call.onExecuted) {
+                call.onExecuted(result);
+            }
 		});
 	});
 }
