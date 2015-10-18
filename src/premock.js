@@ -1,18 +1,25 @@
-module.exports = premock;
+// Public exports
+module.exports =    premock;
+                    premock.withPersistence = premockWithPersistence;
 
 var MaybeFunction = require('./MaybeFunction.js');
 var HeapCallStore = require('./HeapCallStore.js');
 var LocalCallStore = require('./LocalCallStore.js');
 var createProxy = require('./createProxy.js');
 var replayCalls = require('./replayCalls.js');
+var canUseLocalStorage = require('./canUseLocalStorage.js');
 
 function premock(promise) {
     return createPremocker(new HeapCallStore(), promise);
 }
 
-premock.withPersistence = function premockWithPersistence(name, promise) {
-    return createPremocker(new LocalCallStore(name), promise);
-};
+function premockWithPersistence(name, promise) {
+    if (premockWithPersistence._canUseLocalStorage() === false) {
+        throw new Error('Premock: did not detect localStorage');
+    } else {
+        return createPremocker(new LocalCallStore(name), promise);
+    }
+}
 
 function createPremocker(callStore, implementationPromise) {
 	var maybeFunction = new MaybeFunction();

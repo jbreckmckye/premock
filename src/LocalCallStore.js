@@ -1,14 +1,9 @@
 module.exports = LocalCallStore;
 
 // Ghetto dependency injection
-LocalCallStore._canUseLocalStorage = require('./canUseLocalStorage.js');
 LocalCallStore._CallPersistence = require('./CallPersistence.js');
 
 function LocalCallStore(storageKey) {
-    if (LocalCallStore._canUseLocalStorage() === false) {
-        throw new Error('Premock: did not detect localStorage');
-    }
-
     var callPersistence = new LocalCallStore._CallPersistence(storageKey);
 
     this.record = function record(callArguments) {

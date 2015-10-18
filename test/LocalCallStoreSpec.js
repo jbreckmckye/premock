@@ -18,18 +18,6 @@ describe('LocalCallStore', ()=> {
         };
     });
 
-    describe('Reliance on local storage', ()=> {
-        it('throws an error if localstorage not supported', ()=> {
-            LocalCallStore._canUseLocalStorage = ()=> false;
-            expect(createStore).toThrowError('Premock: did not detect localStorage');
-        });
-
-        it('does not throw an error otherwise', ()=> {
-            LocalCallStore._canUseLocalStorage = ()=> true;
-            expect(createStore).not.toThrowError();
-        });
-    });
-
     it('Initializes a persistence object with the provided key', ()=> {
         let callPersistenceArgs = [];
         LocalCallStore._CallPersistence = function() {
