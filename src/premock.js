@@ -14,11 +14,16 @@ function premock(promise) {
 }
 
 function premockWithPersistence(name, promise) {
-    if (premockWithPersistence._canUseLocalStorage() === false) {
+    if (canUseLocalStorage() === false) {
         throw new Error('Premock: did not detect localStorage');
-    } else {
-        return createPremocker(new LocalCallStore(name), promise);
     }
+
+    if (typeof name !== 'string') {
+        throw new Error('Premock: needs a storage ID key');
+    }
+
+    return createPremocker(new LocalCallStore(name), promise);
+
 }
 
 function createPremocker(callStore, implementationPromise) {

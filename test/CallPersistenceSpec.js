@@ -92,13 +92,6 @@ describe('CallPersistence', ()=> {
             const retrieval = callPersister.getParametersPerCall();
             expect(retrieval).toEqual([[1,2,3],[4,5,6]]);
         });
-
-        it('Mutating the retrieved array has no effect on subsequent retrievals', ()=> {
-            let firstRetrieval = callPersister.getParametersPerCall();
-            firstRetrieval.push('foo');
-            const secondRetrieval = callPersister.getParametersPerCall();
-            expect(secondRetrieval).toEqual([]);
-        });
     });
 
     it('Allows us to remove an item', ()=> {

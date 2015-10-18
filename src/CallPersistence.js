@@ -26,7 +26,7 @@ function CallPersistence(storageKey) {
     };
 
     this.getParametersPerCall = function getParametersPerCall() {
-        return clone(parametersPerCall);
+        return parametersPerCall;
     };
 
     this.remove = function remove(element) {
