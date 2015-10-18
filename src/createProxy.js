@@ -29,7 +29,7 @@ function createProxy(getImplementation, callStore) {
                 return callReturn;
             }
 		} else {
-			callStore.record(this, args, returnedPromiseResolver);
+			callStore.record(args, this, returnedPromiseResolver);
 		}
 
 		return returnedPromise || undefined;

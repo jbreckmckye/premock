@@ -3,7 +3,7 @@ module.exports = HeapCallStore;
 function HeapCallStore() {
 	var calls = [];
 
-	this.record = function record(thisBinding, callArguments, onExecuted) {
+	this.record = function record(callArguments, thisBinding, onExecuted) {
 		calls.push({
 			thisBinding: thisBinding, 
 			callArguments : callArguments,

@@ -51,7 +51,7 @@ describe('LocalCallStore', ()=> {
 
             const mockCallThisBinding = null;
             const mockCallArguments = ['foo', 'bar', 'baz'];
-            store.record(mockCallThisBinding, mockCallArguments);
+            store.record(mockCallArguments, mockCallThisBinding);
 
             // Get call arguments we've pushed to local storage
             const persistedCall = mockCallPersistence.record.calls.mostRecent().args[0];

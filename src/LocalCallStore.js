@@ -11,7 +11,7 @@ function LocalCallStore(storageKey) {
 
     var callPersistence = new LocalCallStore._CallPersistence(storageKey);
 
-    this.record = function record(thisBinding, callArguments) {
+    this.record = function record(callArguments) {
         var serializedArgs;
         try {
             serializedArgs = JSON.stringify(callArguments);

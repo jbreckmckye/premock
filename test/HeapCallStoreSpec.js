@@ -21,7 +21,7 @@ describe('HeapCallStore', ()=> {
 			const mockOnExecutedCallback = ()=> {};
 
 			expect(()=> {
-				heapStore.record(mockThisBinding, mockCallArguments, mockOnExecutedCallback);
+				heapStore.record(mockCallArguments, mockThisBinding, mockOnExecutedCallback);
 			}).not.toThrow();
 		});
 
@@ -30,7 +30,7 @@ describe('HeapCallStore', ()=> {
 			const mockCallArguments = [];
 
 			expect(()=> {
-				heapStore.record(mockThisBinding, mockCallArguments);
+				heapStore.record(mockCallArguments, mockThisBinding);
 			}).not.toThrow();
 		});
 	});
@@ -46,14 +46,14 @@ describe('HeapCallStore', ()=> {
 		});
 
 		it('returns an entry for every call record', ()=> {
-			heapStore.record({}, []);
-			heapStore.record({}, []);
+			heapStore.record([], {});
+			heapStore.record([], {});
 			expect(heapStore.getCalls().length).toEqual(2);
 		});
 
 		it('the first item of the entry is the binding object', ()=> {
 			const mockThisBinding = {};
-			heapStore.record(mockThisBinding, []);
+			heapStore.record([], mockThisBinding);
 			const firstCall = heapStore.getCalls()[0];
 
 			expect(firstCall.thisBinding).toBe(mockThisBinding);
@@ -61,7 +61,7 @@ describe('HeapCallStore', ()=> {
 
 		it('the second item of the entry equals the call arguments', ()=> {
 			const mockCallArguments = [123, 456];
-			heapStore.record({}, mockCallArguments);
+			heapStore.record(mockCallArguments, {});
 			const firstCall = heapStore.getCalls()[0];
 
 			expect(firstCall.callArguments).toEqual(mockCallArguments);
@@ -69,7 +69,7 @@ describe('HeapCallStore', ()=> {
 
 		it('the third item of the entry equals the onExecute callback', ()=> {
 			const mockOnExecutedCallback = ()=> {};
-			heapStore.record({}, [], mockOnExecutedCallback);
+			heapStore.record([], {}, mockOnExecutedCallback);
 			const firstCall = heapStore.getCalls()[0];
 
 			expect(firstCall.onExecuted).toBe(mockOnExecutedCallback);

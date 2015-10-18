@@ -47,20 +47,20 @@ describe('createProxy', ()=> {
 				expect(mockCallStore.record).toHaveBeenCalled();
 			});
 
-			it('passes the "this" binding of the call as the first record argument', ()=> {
+			it('call arguments are passed to the store as the first record argument', ()=> {
+				proxy(123, 456);
+				const recordArgs = mockCallStore.record.calls.mostRecent().args;
+
+				expect(recordArgs[0]).toEqual([123, 456]);
+			});
+
+			it('passes the "this" binding of the call as the second record argument', ()=> {
 				const mockThis = {};
 				const boundProxy = proxy.bind(mockThis);
 				boundProxy();
 				const recordArgs = mockCallStore.record.calls.mostRecent().args;
 
-				expect(recordArgs[0]).toBe(mockThis);
-			});
-
-			it('call arguments are passed to the store as the second argument', ()=> {
-				proxy(123, 456);
-				const recordArgs = mockCallStore.record.calls.mostRecent().args;
-
-				expect(recordArgs[1]).toEqual([123, 456]);
+				expect(recordArgs[1]).toBe(mockThis);
 			});
 
 			it('a resolver for the returned promise is passed as the third argument', (done)=> {
