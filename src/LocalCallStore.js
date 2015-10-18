@@ -3,7 +3,7 @@ module.exports = LocalCallStore;
 // Ghetto dependency injection
 LocalCallStore._CallPersistence = require('./CallPersistence.js');
 
-// This file is no longer needed; let's refactor it away...
+// todo This file is no longer needed; let's refactor it away...
 
 function LocalCallStore(storageKey) {
     var callPersistence = new LocalCallStore._CallPersistence(storageKey);
