@@ -4,7 +4,7 @@
   "description": "Mock a function that doesn't exist yet, record calls made to it, and then pass those calls to the function when it finally arrives",
   "main": "premock.js",
   "scripts": {
-    "test": "karma start"
+    "test": "karma start --browsers PhantomJS" /* added just to test out TravisCI */
   },
   "repository": {
     "type": "git",
