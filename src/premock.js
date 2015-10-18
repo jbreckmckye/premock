@@ -15,17 +15,17 @@ premock.withPersistence = function premockWithPersistence(name, promise) {
 };
 
 function createPremocker(callStore, implementationPromise) {
-	var maybeFunction = new MaybeFunction(onImplemented);
+	var maybeFunction = new MaybeFunction();
 	var proxy = createProxy(maybeFunction.getImplementation, callStore);
 
-	proxy.resolve = maybeFunction.resolveImplementation;
+	proxy.resolve = function resolvePremock(implementation) {
+		maybeFunction.resolveImplementation(implementation);
+		replayCalls(callStore.getCalls(), implementation);
+	};
+
 	if (implementationPromise && implementationPromise.then) {
 		implementationPromise.then(maybeFunction.resolveImplementation);
 	}
 
 	return proxy;
-
-	function onImplemented(implementation) {
-		replayCalls(callStore.getCalls(), implementation);
-	}
 }

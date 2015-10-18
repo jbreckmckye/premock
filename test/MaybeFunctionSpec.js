@@ -4,11 +4,10 @@ const MaybeFunction = require('../src/MaybeFunction.js');
 
 describe('MaybeFunction', ()=> {
 	const mockImplementation = ()=> {};
-	let maybeFunction, mockOnResolve;
+	let maybeFunction;
 
 	beforeEach(()=> {
-		mockOnResolve = jasmine.createSpy('mockOnResolve');
-		maybeFunction = new MaybeFunction(mockOnResolve);
+		maybeFunction = new MaybeFunction();
 	});
 
 	it('has a getImplementation method', ()=> {
@@ -23,7 +22,7 @@ describe('MaybeFunction', ()=> {
 		expect(()=> {
 			maybeFunction.resolveImplementation(()=> {});
 		}).not.toThrow();
-	})
+	});
 
 	it('before the implementation is resolved, getImplementation returns null', ()=> {
 		expect(maybeFunction.getImplementation()).toEqual(null);
@@ -34,24 +33,11 @@ describe('MaybeFunction', ()=> {
 		expect(maybeFunction.getImplementation()).toBe(mockImplementation);
 	});
 
-	it('when the implementation is resolved, the onResolve callback is invoked', ()=> {
-		expect(mockOnResolve).not.toHaveBeenCalled();
-		maybeFunction.resolveImplementation(mockImplementation);
-		expect(mockOnResolve).toHaveBeenCalled();
-	});
-
 	it('does not allow the resolved implementation to be overwritten', ()=> {
 		const secondMockImplementation = ()=> {};
 		maybeFunction.resolveImplementation(mockImplementation);
 		maybeFunction.resolveImplementation(secondMockImplementation);
 		expect(maybeFunction.getImplementation()).toBe(mockImplementation);
-	});
-
-	it('attempting to overwrite the implementation does not invoke a second onResolve callback', ()=> {
-		const secondMockImplementation = ()=> {};
-		maybeFunction.resolveImplementation(mockImplementation);
-		maybeFunction.resolveImplementation(secondMockImplementation);
-		expect(mockOnResolve.calls.count()).toBe(1);
 	});
 
 });
