@@ -10,7 +10,7 @@ var replayCalls = require('./replayCalls.js');
 var canUseLocalStorage = require('./canUseLocalStorage.js');
 
 function premock(promise) {
-    return createPremocker(new HeapCallStore(), promise);
+    return createMockUsingStore(new HeapCallStore(), promise);
 }
 
 function premockWithPersistence(name, promise) {
@@ -22,11 +22,10 @@ function premockWithPersistence(name, promise) {
         throw new Error('Premock: needs a storage ID key');
     }
 
-    return createPremocker(new LocalCallStore(name), promise);
-
+    return createMockUsingStore(new LocalCallStore(name), promise);
 }
 
-function createPremocker(callStore, implementationPromise) {
+function createMockUsingStore(callStore, implementationPromise) {
 	var maybeFunction = new MaybeFunction();
 	var proxy = createProxy(maybeFunction.getImplementation, callStore);
 

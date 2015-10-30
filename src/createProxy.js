@@ -30,6 +30,7 @@ function createProxy(getImplementation, callStore) {
             }
 		} else {
 			callStore.record(args, this, returnedPromiseResolver);
+			// Passing in the 'this' value means we can bind object methods
 		}
 
 		return returnedPromise || undefined;

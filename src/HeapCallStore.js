@@ -5,14 +5,13 @@ function HeapCallStore() {
 
 	this.record = function record(callArguments, thisBinding, onExecuted) {
 		calls.push({
-			thisBinding: thisBinding, 
 			callArguments : callArguments,
+			thisBinding: thisBinding,
 			onExecuted : onExecuted
 		});
 	};
 
 	this.getCalls = function getCalls() {
-		// Use slice to clone
-		return calls.slice(0);
+		return calls;
 	};
 }

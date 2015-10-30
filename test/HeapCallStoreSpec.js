@@ -74,13 +74,5 @@ describe('HeapCallStore', ()=> {
 
 			expect(firstCall.onExecuted).toBe(mockOnExecutedCallback);
 		});
-
-		it('operations on the returned array do not affect subsequent returned arrays', ()=> {
-			let setOne = heapStore.getCalls();
-			setOne.push('illegal data');
-			let setTwo = heapStore.getCalls();
-
-			expect(setTwo.length).toBe(0);
-		});
 	});
 });
