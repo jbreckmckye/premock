@@ -1,6 +1,6 @@
 // Public exports
 module.exports =    premock;
-                    premock.withPersistence = premockWithPersistence;
+                    premock.withoutPersistence = premockWithoutPersistence;
 
 // Build command
 // browserify src/premock.js -o premock.js -s "premock"
@@ -12,11 +12,7 @@ var createProxy = require('./createProxy.js');
 var replayCalls = require('./replayCalls.js');
 var canUseLocalStorage = require('./canUseLocalStorage.js');
 
-function premock(promise) {
-    return createMockUsingStore(new HeapCallStore(), promise);
-}
-
-function premockWithPersistence(name, promise) {
+function premock(name, promise) {
     if (canUseLocalStorage() === false) {
         throw new Error('Premock: did not detect localStorage');
     }
@@ -26,6 +22,10 @@ function premockWithPersistence(name, promise) {
     }
 
     return createMockUsingStore(new LocalCallStore(name), promise);
+}
+
+function premockWithoutPersistence(promise) {
+	return createMockUsingStore(new HeapCallStore(), promise);
 }
 
 function createMockUsingStore(callStore, implementationPromise) {
