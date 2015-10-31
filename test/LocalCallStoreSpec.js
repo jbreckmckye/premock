@@ -2,95 +2,206 @@
 
 const LocalCallStore = require('../src/LocalCallStore.js');
 
-describe('LocalCallStore', ()=> {
-    const testStorageKey = 'testStorageKey';
-    const createStore = ()=> {
-        return new LocalCallStore(testStorageKey);
-    };
-    let mockCallPersistence;
+describe('Local call store', ()=> {
+    const storageKey = 'testStorageKey';
 
-    beforeEach(()=> {
-        LocalCallStore._canUseLocalStorage = ()=> true;
-        mockCallPersistence = {
-            record : ()=> {},
-            getParametersPerCall : ()=> {},
-            remove : ()=> {}
-        };
+    let scenario;
+
+    afterEach(()=> {
+        scenario.tearDown();
     });
 
-    it('Initializes a persistence object with the provided key', ()=> {
-        let callPersistenceArgs = [];
-        LocalCallStore._CallPersistence = function() {
-            callPersistenceArgs = arguments;
-        };
+    describe('Retrieving calls', ()=> {
 
-        createStore();
-        expect(callPersistenceArgs[0]).toBe(testStorageKey);
-    });
+        describe('From empty original data', ()=> {
+            beforeEach(()=> {
+                scenario = new Scenario();
+            });
 
-    describe('Recording values', ()=> {
-        it('passes call arguments to the persister', ()=> {
-            LocalCallStore._CallPersistence = function() {
-                return mockCallPersistence;
-            };
-            spyOn(mockCallPersistence, 'record');
-
-            const store = createStore();
-
-            const mockCallThisBinding = null;
-            const mockCallArguments = ['foo', 'bar', 'baz'];
-            store.record(mockCallArguments, mockCallThisBinding);
-
-            // Get call arguments we've pushed to local storage
-            const persistedCall = mockCallPersistence.record.calls.mostRecent().args[0];
-
-            // Are the serialized arguments what we expect?
-            expect(persistedCall).toEqual(JSON.stringify(mockCallArguments));
+            it('getCalls returns an empty set', ()=> {
+                const calls = scenario.store.getCalls();
+                expect(calls).toEqual([]);
+            });
         });
+
+        describe('From non-empty original data', ()=> {
+            const originalData = [
+                ['The', 'first', 'call`s', 'arguments'],
+                ['The', 'second', 'call`s'],
+                ['And', 'the', 'third`s']
+            ];
+            let calls;
+
+            beforeEach(()=> {
+                scenario = new Scenario(originalData);
+                calls = scenario.store.getCalls();
+            });
+
+            it('getCalls returns an object per stored call', ()=> {
+                expect(calls.length).toEqual(originalData.length);
+            });
+
+            it('each object comes with the parameters for each stored call', ()=> {
+                const parametersSet = calls.map(call => call.callArguments);
+                expect(parametersSet).toEqual(originalData);
+            });
+
+            it('each object comes with a null `this` binding', ()=> {
+                const bindingsSet = calls.map(call => call.thisBinding);
+                expect(bindingsSet).toEqual([null, null, null]);
+            });
+
+            it('each object comes with an `onExecuted` callback', ()=> {
+                const callbacks = calls.map(call => call.onExecuted);
+                callbacks.forEach(callback => {
+                    expect(callback).toEqual(jasmine.any(Function));
+                });
+            });
+
+            it('if I call the `onExecuted` callback from a stored call, it deletes it', ()=> {
+                calls[1].onExecuted();
+                const callData = scenario.getCallData();
+                expect(callData.length).toEqual(originalData.length - 1);
+                expect(callData[0]).toEqual(originalData[0]);
+                expect(callData[1]).toEqual(originalData[2]);
+            });
+
+            it('after deleting the stored call, getCalls does not return it', ()=> {
+                calls[1].onExecuted();
+                expect(scenario.store.getCalls().length).toBe(2);
+            });
+        });
+
+        describe('From calls recorded subsequently', ()=> {
+            const newData = [
+                ['arg', 'set', 1],
+                ['arg', 'set', 2],
+                ['arg', 'set', 3]
+            ];
+            let calls;
+
+            beforeEach(()=> {
+                scenario = new Scenario();
+                newData.forEach(newDatum => scenario.store.record(newDatum));
+                calls = scenario.store.getCalls();
+            });
+
+            it('getCalls returns an object per stored call', ()=> {
+                expect(calls.length).toEqual(newData.length);
+            });
+
+            it('each object comes with the parameters for each stored call', ()=> {
+                const parametersSet = calls.map(call => call.callArguments);
+                expect(parametersSet).toEqual(newData);
+            });
+
+            it('each object comes with a null `this` binding', ()=> {
+                const bindingsSet = calls.map(call => call.thisBinding);
+                expect(bindingsSet).toEqual([null, null, null]);
+            });
+
+            it('each object comes with an `onExecuted` callback', ()=> {
+                const callbacks = calls.map(call => call.onExecuted);
+                callbacks.forEach(callback => {
+                    expect(callback).toEqual(jasmine.any(Function));
+                });
+            });
+
+            it('if I call the `onExecuted` callback from a stored call, it deletes it', ()=> {
+                calls[1].onExecuted();
+                const callData = scenario.getCallData();
+                expect(callData.length).toEqual(newData.length - 1);
+                expect(callData[0]).toEqual(newData[0]);
+                expect(callData[1]).toEqual(newData[2]);
+            });
+
+            it('after deleting the stored call, getCalls does not return it', ()=> {
+                calls[1].onExecuted();
+                expect(scenario.store.getCalls().length).toBe(2);
+            });
+        });
+
+        function Scenario(startingData) {
+            if (startingData) {
+                localStorage.setItem(storageKey, JSON.stringify(startingData));
+            }
+
+            this.store = new LocalCallStore(storageKey);
+
+            this.getCallData = function () {
+                return JSON.parse(localStorage.getItem(storageKey));
+            };
+
+            this.tearDown = function () {
+                localStorage.removeItem(storageKey);
+            }
+        }
     });
 
-    describe('Retrieving values', ()=> {
-        let store;
-        let storedCalls = [[1,2,3],[4,5,6],[7,8,9]];
+    describe('Handling storage errors', ()=> {
+        let store, mockStorage;
 
         beforeEach(()=> {
-            LocalCallStore._CallPersistence = function() {
-                return mockCallPersistence;
+            LocalCallStore._storage = new BreakableStorage();
+            store = new LocalCallStore('mock storage key');
+            mockStorage = LocalCallStore._storage;
+        });
+
+        afterEach(()=> {
+            LocalCallStore._storage = window.localStorage;
+        });
+
+        it('Does not swallow errors', ()=> {
+            mockStorage.shouldThrow = true;
+
+            const faultyRecording = function() {
+                store.record([1, 2, 3]);
             };
-            mockCallPersistence.getParametersPerCall = ()=> storedCalls;
-            store = createStore();
 
+            expect(faultyRecording).toThrow(mockStorage.storageException);
         });
 
-        it('returns a set of call objects for replaying', ()=> {
-            const retrievedCalls = store.getCalls();
-            expect(retrievedCalls).toEqual(jasmine.any(Array));
-            expect(retrievedCalls[0]).toEqual(jasmine.any(Object));
+        it('Calling getCalls() after a storage error returns only the successfully stored calls', ()=> {
+            const firstParams = ['alpha', 'beta', 'gamma'];
+            const secondParams = [2, 4, 8];
+            const thirdParams = ['Agamemnon', 'Menelaus', 'Clytemnestra'];
+
+            // Store succeeds
+            mockStorage.shouldThrow = false;
+            store.record(firstParams);
+
+            // Store fails (e.g. storage full)
+            try {
+                mockStorage.shouldThrow = true;
+                store.record(secondParams);
+            } catch (e) {}
+
+            // Store succeeds again (e.g. data just fits)
+            mockStorage.shouldThrow = false;
+            store.record(thirdParams);
+
+            const storedCalls = store.getCalls();
+            const storedCallArgs = storedCalls.map(storedCall => storedCall.callArguments);
+            expect(storedCallArgs).toEqual([firstParams, thirdParams]);
         });
 
-        describe('A call object', ()=> {
-            it('has an `undefined` this binding, because heap objects cannot persist', ()=> {
-                const retrievedCalls = store.getCalls();
-                expect(retrievedCalls[0].thisBinding).toBeUndefined();
-            });
+        function BreakableStorage() {
+            this.shouldThrow = false;
+            this.storageException = new Error('Mock storage exception');
 
-            it('exposes the original call`s arguments, in a deserialized fashion', ()=> {
-                const retrievedCalls = store.getCalls();
-                expect(retrievedCalls[0].callArguments).toBeTruthy();
-                expect(retrievedCalls[0].callArguments).toEqual([1,2,3]);
-            });
+            this.getItem = (key) => {
+                return window.localStorage.getItem(key);
+            };
+            this.setItem = (key, value)=> {
+                if (this.shouldThrow) {
+                    throw this.storageException;
+                } else {
+                    window.localStorage.setItem(key, value);
+                }
+            };
+        }
+    })
 
-            it('sets an on-executed callback that deletes the call from persistence once it is replayed', ()=> {
-                const retrievedCalls = store.getCalls();
 
-                expect(retrievedCalls[0].onExecuted).toEqual(jasmine.any(Function));
 
-                spyOn(mockCallPersistence, 'remove');
-
-                retrievedCalls[0].onExecuted(); // should delete the first persisted call
-                expect(mockCallPersistence.remove).toHaveBeenCalled();
-                expect(mockCallPersistence.remove).toHaveBeenCalledWith(storedCalls[0]); // expects the object to delete
-            });
-        })
-    });
 });
