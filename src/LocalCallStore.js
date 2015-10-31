@@ -51,7 +51,7 @@ function LocalCallStore(storageKey) {
             storage.setItem(storageKey, JSON.stringify(newRecords));
         } else {
             // Stop empty records littering localStorage
-            storage.remove(storageKey);
+            storage.removeItem(storageKey);
         }
     }
 }
