@@ -35,7 +35,7 @@ function createMockUsingStore(callStore, implementationPromise) {
 	};
 
 	if (implementationPromise && implementationPromise.then) {
-		implementationPromise.then(maybeFunction.resolveImplementation);
+		implementationPromise.then(proxy.resolve);
 	}
 
 	return proxy;

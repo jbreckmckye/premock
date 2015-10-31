@@ -1,53 +1,4 @@
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.premock = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-module.exports = CallPersistence;
-
-CallPersistence._storage = window.localStorage;
-
-/**
- * CallPersistence: save the details of function calls to localStorage,
- * and let us fish them out, too.
- * @param storageKey String: key our calls will be stored against
- */
-function CallPersistence(storageKey) {
-    var storage = CallPersistence._storage;
-    var existingRecords = storage.getItem(storageKey);
-    var parametersPerCall = existingRecords ? JSON.parse(existingRecords) : [];
-
-    this.record = function record(callArgs) {
-        // We create a backup state, so we can recover from storage errors
-        var backupParametersPerCall = clone(parametersPerCall);
-        parametersPerCall.push(callArgs);
-        // This might throw an error if storage is full
-        try {
-            updatePersistence();
-        } catch (e) {
-            parametersPerCall = backupParametersPerCall;
-            throw e;
-        }
-    };
-
-    this.getParametersPerCall = function getParametersPerCall() {
-        return parametersPerCall;
-    };
-
-    this.remove = function remove(element) {
-        var elementIndex = parametersPerCall.indexOf(element);
-        if (elementIndex !== -1) {
-            parametersPerCall.splice(elementIndex, 1);
-            updatePersistence();
-        }
-    };
-
-    function updatePersistence() {
-        var serializedPartition = JSON.stringify(parametersPerCall);
-        storage.setItem(storageKey, serializedPartition);
-    }
-}
-
-function clone(obj) {
-    return JSON.parse(JSON.stringify(obj));
-}
-},{}],2:[function(require,module,exports){
 module.exports = HeapCallStore;
 
 function HeapCallStore() {
@@ -55,46 +6,80 @@ function HeapCallStore() {
 
 	this.record = function record(callArguments, thisBinding, onExecuted) {
 		calls.push({
-			thisBinding: thisBinding, 
 			callArguments : callArguments,
+			thisBinding: thisBinding,
 			onExecuted : onExecuted
 		});
 	};
 
 	this.getCalls = function getCalls() {
-		// Use slice to clone
-		return calls.slice(0);
+		return calls;
 	};
 }
-},{}],3:[function(require,module,exports){
+},{}],2:[function(require,module,exports){
 module.exports = LocalCallStore;
 
-// Ghetto dependency injection
-LocalCallStore._CallPersistence = require('./CallPersistence.js');
+LocalCallStore._storage = window.localStorage;
 
+/**
+ * CallPersistence: save the details of function calls to localStorage,
+ * and let us fish them out, too.
+ * @param storageKey String: key our calls will be stored against
+ */
 function LocalCallStore(storageKey) {
-    var callPersistence = new LocalCallStore._CallPersistence(storageKey);
+    var storage = LocalCallStore._storage;
+    var existingRecords = storage.getItem(storageKey);
+    var parametersPerCall = existingRecords ? JSON.parse(existingRecords) : [];
 
     this.record = function record(callArguments) {
-        callPersistence.record(callArguments);
+        // Recording a call might fail if storage fills up.
+        // So we clone our list before we mutate and commit it,
+        // And only mutate the real list once we know the commit worked
+
+        var newRecords = parametersPerCall.concat([callArguments]);
+
+        // This might throw an error if storage is full
+        updatePersistence(newRecords);
+
+        // It's important to keep the original list in place at all times,
+        // as this allows our deletion logic to match an element for deletion
+        // by reference equality.
+        parametersPerCall.push(callArguments);
     };
 
     this.getCalls = function getCalls() {
-        var calls = callPersistence.getParametersPerCall();
-        return calls.map(function (call) {
+        return parametersPerCall.map(function(callParams) {
             return {
-                thisBinding : undefined,
-                callArguments : call,
-                onExecuted : function() {
-                    // we want to delete call records at the moment they complete, but not a second earlier
-                    callPersistence.remove(call);
-                }
+                callArguments : callParams,
+                thisBinding : null,
+                onExecuted : remove.bind(null, callParams) // delete calls from persistence once executed
             };
         });
     };
+
+    function remove(callParams) {
+        var elementIndex = parametersPerCall.indexOf(callParams);
+        if (elementIndex !== -1) {
+            parametersPerCall.splice(elementIndex, 1);
+            updatePersistence(parametersPerCall);
+        }
+    }
+
+    function updatePersistence(newRecords) {
+        if (newRecords.length) {
+            storage.setItem(storageKey, JSON.stringify(newRecords));
+        } else {
+            // Stop empty records littering localStorage
+            storage.remove(storageKey);
+        }
+    }
 }
 
-},{"./CallPersistence.js":1}],4:[function(require,module,exports){
+function clone(obj) {
+    return JSON.parse(JSON.stringify(obj));
+}
+
+},{}],3:[function(require,module,exports){
 module.exports = MaybeFunction;
 
 function MaybeFunction() {
@@ -110,7 +95,7 @@ function MaybeFunction() {
 		return realFunction;
 	};
 }
-},{}],5:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 module.exports = canUseLocalStorage;
 
 // Expose dependencies for testing
@@ -141,7 +126,7 @@ function canUseLocalStorage() {
         }
     }
 }
-},{}],6:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 module.exports = createProxy;
 
 // Ghetto dependency injection
@@ -174,19 +159,20 @@ function createProxy(getImplementation, callStore) {
             }
 		} else {
 			callStore.record(args, this, returnedPromiseResolver);
+			// Passing in the 'this' value means we can bind object methods
 		}
 
 		return returnedPromise || undefined;
 	};
 }
 
-},{}],7:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 module.exports = defer;
 
 function defer(fn) {
 	window.setTimeout(fn, 0);
 }
-},{}],8:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 // Public exports
 module.exports =    premock;
                     premock.withPersistence = premockWithPersistence;
@@ -199,7 +185,7 @@ var replayCalls = require('./replayCalls.js');
 var canUseLocalStorage = require('./canUseLocalStorage.js');
 
 function premock(promise) {
-    return createPremocker(new HeapCallStore(), promise);
+    return createMockUsingStore(new HeapCallStore(), promise);
 }
 
 function premockWithPersistence(name, promise) {
@@ -211,11 +197,10 @@ function premockWithPersistence(name, promise) {
         throw new Error('Premock: needs a storage ID key');
     }
 
-    return createPremocker(new LocalCallStore(name), promise);
-
+    return createMockUsingStore(new LocalCallStore(name), promise);
 }
 
-function createPremocker(callStore, implementationPromise) {
+function createMockUsingStore(callStore, implementationPromise) {
 	var maybeFunction = new MaybeFunction();
 	var proxy = createProxy(maybeFunction.getImplementation, callStore);
 
@@ -225,12 +210,12 @@ function createPremocker(callStore, implementationPromise) {
 	};
 
 	if (implementationPromise && implementationPromise.then) {
-		implementationPromise.then(maybeFunction.resolveImplementation);
+		implementationPromise.then(proxy.resolve);
 	}
 
 	return proxy;
 }
-},{"./HeapCallStore.js":2,"./LocalCallStore.js":3,"./MaybeFunction.js":4,"./canUseLocalStorage.js":5,"./createProxy.js":6,"./replayCalls.js":9}],9:[function(require,module,exports){
+},{"./HeapCallStore.js":1,"./LocalCallStore.js":2,"./MaybeFunction.js":3,"./canUseLocalStorage.js":4,"./createProxy.js":5,"./replayCalls.js":8}],8:[function(require,module,exports){
 module.exports = replayCalls;
 
 // Ghetto dependency injection
@@ -244,6 +229,8 @@ function replayCalls(calls, implementation) {
 		var result;
 		var thisBinding = call.thisBinding || null; // Calls from previous pages will lack bindings
 		defer(function(){
+            // todo - there is a bug here, where a faulty set of params in localStorage will never clear, because onExecuted isn't called if the implementation throws an error
+
 			result = implementation.apply(thisBinding, call.callArguments);
 			if (call.onExecuted) {
                 call.onExecuted(result);
@@ -251,5 +238,5 @@ function replayCalls(calls, implementation) {
 		});
 	});
 }
-},{"./defer.js":7}]},{},[8])(8)
+},{"./defer.js":6}]},{},[7])(7)
 });
