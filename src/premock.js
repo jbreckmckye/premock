@@ -2,6 +2,9 @@
 module.exports =    premock;
                     premock.withPersistence = premockWithPersistence;
 
+// Build command
+// browserify src/premock.js -o premock.js -s "premock"
+
 var MaybeFunction = require('./MaybeFunction.js');
 var HeapCallStore = require('./HeapCallStore.js');
 var LocalCallStore = require('./LocalCallStore.js');
