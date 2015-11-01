@@ -28,46 +28,68 @@ LocalCallStore._storage = window.localStorage;
  */
 function LocalCallStore(storageKey) {
     var storage = LocalCallStore._storage;
-    var existingRecords = storage.getItem(storageKey);
-    var parametersPerCall = existingRecords ? JSON.parse(existingRecords) : [];
+    var callData = getCallDataFromStore();
 
-    this.record = function record(callArguments) {
+    this.record = function record(callArguments, thisBinding, onExecuted) {
         // Recording a call might fail if storage fills up.
         // So we clone our list before we mutate and commit it,
         // And only mutate the real list once we know the commit worked
 
-        var newRecords = parametersPerCall.concat([callArguments]);
+        var newDatum = new CallDatum(callArguments, onExecuted);
+        var newRecords = callData.concat([newDatum]);
 
         // This might throw an error if storage is full
-        updatePersistence(newRecords);
+        putCallDataInStore(newRecords);
 
         // It's important to keep the original list in place at all times,
         // as this allows our deletion logic to match an element for deletion
         // by reference equality.
-        parametersPerCall.push(callArguments);
+        callData.push(newDatum);
     };
 
     this.getCalls = function getCalls() {
-        return parametersPerCall.map(function(callParams) {
-            return {
-                callArguments : callParams,
-                thisBinding : null,
-                onExecuted : remove.bind(null, callParams) // delete calls from persistence once executed
+        return callData.map(function(callDatum) {
+            // Augment the onExecuted callback with an additional step to delete the data
+            var originalOnExecuted = callDatum.onExecuted;
+
+            callDatum.onExecuted = function onExecuted(result) {
+                if (originalOnExecuted) {
+                    originalOnExecuted(result);
+                }
+                remove(callDatum);
             };
+            return callDatum;
         });
     };
 
     function remove(callParams) {
-        var elementIndex = parametersPerCall.indexOf(callParams);
+        var elementIndex = callData.indexOf(callParams);
         if (elementIndex !== -1) {
-            parametersPerCall.splice(elementIndex, 1);
-            updatePersistence(parametersPerCall);
+            callData.splice(elementIndex, 1);
+            putCallDataInStore(callData);
         }
     }
 
-    function updatePersistence(newRecords) {
-        if (newRecords.length) {
-            storage.setItem(storageKey, JSON.stringify(newRecords));
+    function CallDatum(args, onExecuted) {
+        this.callArguments = args;
+        this.thisBinding = null;
+        this.onExecuted = onExecuted;
+    }
+
+    function getCallDataFromStore() {
+        var rawData = storage.getItem(storageKey);
+        var paramsList = rawData ? JSON.parse(rawData) : [];
+        return paramsList.map(function(params) {
+            return new CallDatum(params);
+        });
+    }
+
+    function putCallDataInStore(newData) {
+        var paramsList = newData.map(function(datum) {
+            return datum.callArguments;
+        });
+        if (paramsList.length) {
+            storage.setItem(storageKey, JSON.stringify(paramsList));
         } else {
             // Stop empty records littering localStorage
             storage.removeItem(storageKey);
@@ -175,7 +197,7 @@ function defer(fn) {
 },{}],7:[function(require,module,exports){
 // Public exports
 module.exports =    premock;
-                    premock.withPersistence = premockWithPersistence;
+                    premock.withoutPersistence = premockWithoutPersistence;
 
 var MaybeFunction = require('./MaybeFunction.js');
 var HeapCallStore = require('./HeapCallStore.js');
@@ -184,11 +206,9 @@ var createProxy = require('./createProxy.js');
 var replayCalls = require('./replayCalls.js');
 var canUseLocalStorage = require('./canUseLocalStorage.js');
 
-function premock(promise) {
-    return createMockUsingStore(new HeapCallStore(), promise);
-}
+function premock(name, promise) {
+    name = name.toString();
 
-function premockWithPersistence(name, promise) {
     if (canUseLocalStorage() === false) {
         throw new Error('Premock: did not detect localStorage');
     }
@@ -198,6 +218,10 @@ function premockWithPersistence(name, promise) {
     }
 
     return createMockUsingStore(new LocalCallStore(name), promise);
+}
+
+function premockWithoutPersistence(promise) {
+	return createMockUsingStore(new HeapCallStore(), promise);
 }
 
 function createMockUsingStore(callStore, implementationPromise) {

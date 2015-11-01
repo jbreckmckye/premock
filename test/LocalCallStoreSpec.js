@@ -7,10 +7,6 @@ describe('Local call store', ()=> {
 
     let scenario;
 
-    afterEach(()=> {
-        scenario.tearDown();
-    });
-
     describe('Retrieving calls', ()=> {
 
         describe('From empty original data', ()=> {
@@ -78,11 +74,12 @@ describe('Local call store', ()=> {
                 ['arg', 'set', 2],
                 ['arg', 'set', 3]
             ];
-            let calls;
+            let calls, initialExecutionCallback;
 
             beforeEach(()=> {
                 scenario = new Scenario();
-                newData.forEach(newDatum => scenario.store.record(newDatum));
+                initialExecutionCallback = jasmine.createSpy('onExecutedCallback');
+                newData.forEach(newDatum => scenario.store.record(newDatum, null, initialExecutionCallback));
                 calls = scenario.store.getCalls();
             });
 
@@ -115,6 +112,29 @@ describe('Local call store', ()=> {
                 expect(callData[1]).toEqual(newData[2]);
             });
 
+            it('if I call the `onExecuted` callback from a stored call, it invokes the original callback', ()=> {
+                calls[1].onExecuted();
+                expect(initialExecutionCallback).toHaveBeenCalled();
+            });
+
+            it('the `onExecuted` callback passes its argument to the original execution callback', ()=> {
+                calls[1].onExecuted('bar');
+                expect(initialExecutionCallback).toHaveBeenCalledWith('bar');
+            });
+
+            it('if there is not an original execution callback, `onExecuted` still deletes the data', ()=> {
+                scenario = new Scenario();
+
+                // Record two data points
+                scenario.store.record(123, null, undefined);
+                scenario.store.record(321, null, undefined);
+
+                // Remove one
+                scenario.store.getCalls()[0].onExecuted();
+
+                expect(scenario.store.getCalls().length).toBe(1);
+            });
+
             it('after deleting the stored call, getCalls does not return it', ()=> {
                 calls[1].onExecuted();
                 expect(scenario.store.getCalls().length).toBe(2);
@@ -127,6 +147,9 @@ describe('Local call store', ()=> {
         });
 
         function Scenario(startingData) {
+            // Tear down previous scenario data
+            localStorage.removeItem(storageKey);
+
             if (startingData) {
                 localStorage.setItem(storageKey, JSON.stringify(startingData));
             }
@@ -136,10 +159,6 @@ describe('Local call store', ()=> {
             this.getCallData = function () {
                 return JSON.parse(localStorage.getItem(storageKey));
             };
-
-            this.tearDown = function () {
-                localStorage.removeItem(storageKey);
-            }
         }
     });
 
