@@ -119,6 +119,11 @@ describe('Local call store', ()=> {
                 calls[1].onExecuted();
                 expect(scenario.store.getCalls().length).toBe(2);
             });
+
+            it('if I delete everything, all the localStorage data is razed', ()=> {
+                calls.forEach(call => call.onExecuted());
+                expect(scenario.getCallData()).toBeNull();
+            })
         });
 
         function Scenario(startingData) {
