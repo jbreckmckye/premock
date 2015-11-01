@@ -4,7 +4,8 @@
   "description": "Mock a function that doesn't exist yet, record calls made to it, and then pass those calls to the function when it finally arrives",
   "main": "premock.js",
   "scripts": {
-    "test": "karma start"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build" : "browserify src/premock.js -o premock.js -s 'premock'"
   },
   "repository": {
     "type": "git",

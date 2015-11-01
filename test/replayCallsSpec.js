@@ -52,6 +52,17 @@ describe('replayCalls', ()=> {
 			expect(mockOnExecuted.calls.count()).toBe(mockCalls.length);
 		});
 
+		it('Can run calls with null onExecuted callbacks', ()=> {
+            // We need a real _defer implementation to try and execute the calls
+            replayCalls._defer = (fn)=> {fn()};
+
+            let mockCall = new MockCall();
+            mockCall.onExecuted = null;
+
+            replayCalls([mockCall], mockImplementation);
+            expect(mockImplementation).toHaveBeenCalled();
+        });
+
 		it('The onExecuted callback is run with the return value of the invocation as its argument', ()=> {
 			const mockImplementation = ()=> {return 123};
 			replayCalls._defer = (fn)=> {fn()}; // use synchronous implementation

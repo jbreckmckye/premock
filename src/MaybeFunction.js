@@ -1,13 +1,11 @@
 module.exports = MaybeFunction;
 
-function MaybeFunction(onResolve) {
-	var that = this;
+function MaybeFunction() {
 	var realFunction = null;
 
 	this.resolveImplementation = function(fn) {
-		if (realFunction === null) {
+		if (realFunction === null) { // is this guard strictly MaybeFunction's responsibility?
 			realFunction = fn;
-			onResolve(realFunction);
 		}		
 	};
 

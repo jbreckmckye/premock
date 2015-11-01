@@ -1,32 +1,115 @@
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.premock = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-module.exports = CallStore;
+module.exports = HeapCallStore;
 
-function CallStore() {
+function HeapCallStore() {
 	var calls = [];
 
-	this.record = function record(thisBinding, callArguments, onExecuted) {
+	this.record = function record(callArguments, thisBinding, onExecuted) {
 		calls.push({
-			thisBinding: thisBinding, 
 			callArguments : callArguments,
+			thisBinding: thisBinding,
 			onExecuted : onExecuted
 		});
 	};
 
 	this.getCalls = function getCalls() {
-		return calls.slice(0); // clone
+		return calls;
 	};
 }
 },{}],2:[function(require,module,exports){
+module.exports = LocalCallStore;
+
+LocalCallStore._storage = window.localStorage;
+
+/**
+ * CallPersistence: save the details of function calls to localStorage,
+ * and let us fish them out, too.
+ * @param storageKey String: key our calls will be stored against
+ */
+function LocalCallStore(storageKey) {
+    var storage = LocalCallStore._storage;
+    var callData = getCallDataFromStore();
+
+    this.record = function record(callArguments, thisBinding, onExecuted) {
+        // Recording a call might fail if storage fills up.
+        // So we clone our list before we mutate and commit it,
+        // And only mutate the real list once we know the commit worked
+
+        var newDatum = new CallDatum(callArguments, onExecuted);
+        var newRecords = callData.concat([newDatum]);
+
+        // This might throw an error if storage is full
+        putCallDataInStore(newRecords);
+
+        // It's important to keep the original list in place at all times,
+        // as this allows our deletion logic to match an element for deletion
+        // by reference equality.
+        callData.push(newDatum);
+    };
+
+    this.getCalls = function getCalls() {
+        return callData.map(function(callDatum) {
+            // Augment the onExecuted callback with an additional step to delete the data
+            var originalOnExecuted = callDatum.onExecuted;
+
+            callDatum.onExecuted = function onExecuted(result) {
+                if (originalOnExecuted) {
+                    originalOnExecuted(result);
+                }
+                remove(callDatum);
+            };
+            return callDatum;
+        });
+    };
+
+    function remove(callParams) {
+        var elementIndex = callData.indexOf(callParams);
+        if (elementIndex !== -1) {
+            callData.splice(elementIndex, 1);
+            putCallDataInStore(callData);
+        }
+    }
+
+    function CallDatum(args, onExecuted) {
+        this.callArguments = args;
+        this.thisBinding = null;
+        this.onExecuted = onExecuted;
+    }
+
+    function getCallDataFromStore() {
+        var rawData = storage.getItem(storageKey);
+        var paramsList = rawData ? JSON.parse(rawData) : [];
+        return paramsList.map(function(params) {
+            return new CallDatum(params);
+        });
+    }
+
+    function putCallDataInStore(newData) {
+        var paramsList = newData.map(function(datum) {
+            return datum.callArguments;
+        });
+        if (paramsList.length) {
+            storage.setItem(storageKey, JSON.stringify(paramsList));
+        } else {
+            // Stop empty records littering localStorage
+            storage.removeItem(storageKey);
+        }
+    }
+}
+
+function clone(obj) {
+    return JSON.parse(JSON.stringify(obj));
+}
+
+},{}],3:[function(require,module,exports){
 module.exports = MaybeFunction;
 
-function MaybeFunction(onResolve) {
-	var that = this;
+function MaybeFunction() {
 	var realFunction = null;
 
 	this.resolveImplementation = function(fn) {
-		if (realFunction === null) {
+		if (realFunction === null) { // is this guard strictly MaybeFunction's responsibility?
 			realFunction = fn;
-			onResolve(realFunction);
 		}		
 	};
 
@@ -34,7 +117,38 @@ function MaybeFunction(onResolve) {
 		return realFunction;
 	};
 }
-},{}],3:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
+module.exports = canUseLocalStorage;
+
+// Expose dependencies for testing
+canUseLocalStorage._localStorage = window.localStorage;
+
+function canUseLocalStorage() {
+    var storage = canUseLocalStorage._localStorage;
+    return !!storage && canStoreItems();
+
+    function canStoreItems() {
+        // This can fail if browser security settings give storage a zero quota (i.e. Safari)
+
+        if (storage.length) {
+            return true; // items are stored, so storage must have a quota
+        } else {
+            try {
+                testStorage();
+            } catch (e) {
+                return false;
+            }
+            // If successful...
+            return true;
+        }
+
+        function testStorage() {
+            storage.setItem('premock-feature-test', 'abc');
+            storage.removeItem('premock-feature-test');
+        }
+    }
+}
+},{}],5:[function(require,module,exports){
 module.exports = createProxy;
 
 // Ghetto dependency injection
@@ -46,59 +160,86 @@ function createProxy(getImplementation, callStore) {
 
 		var args = Array.prototype.slice.call(arguments);
 		var implementation = getImplementation();
-		var callPromise;
-		var onRealCall;
-		var callReturn;
+		var returnedPromise;
+		var returnedPromiseResolver = null;
 
 		if (Promise) {
-			callPromise = new Promise(function(resolve){
-				onRealCall = resolve;
+            // If we can, we return a promise of the call`s eventual execution
+            // When the implementation is delivered, that promise is resolved with
+            // the return value of the replay
+			returnedPromise = new Promise(function(resolve){
+				returnedPromiseResolver = resolve;
 			});
 		}
 
 		if (implementation) {
-			callReturn = implementation.apply(this, args);
-			onRealCall(callReturn);
+			var callReturn = implementation.apply(this, args);
+            if (returnedPromise) {
+                returnedPromiseResolver(callReturn);
+            } else {
+                return callReturn;
+            }
 		} else {
-			callStore.record(this, args, onRealCall);
+			callStore.record(args, this, returnedPromiseResolver);
+			// Passing in the 'this' value means we can bind object methods
 		}
 
-		return callPromise;
+		return returnedPromise || undefined;
 	};
 }
 
-
-},{}],4:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 module.exports = defer;
 
 function defer(fn) {
 	window.setTimeout(fn, 0);
 }
-},{}],5:[function(require,module,exports){
-module.exports = premock;
+},{}],7:[function(require,module,exports){
+// Public exports
+module.exports =    premock;
+                    premock.withoutPersistence = premockWithoutPersistence;
 
 var MaybeFunction = require('./MaybeFunction.js');
-var CallStore = require('./CallStore.js');
+var HeapCallStore = require('./HeapCallStore.js');
+var LocalCallStore = require('./LocalCallStore.js');
 var createProxy = require('./createProxy.js');
 var replayCalls = require('./replayCalls.js');
+var canUseLocalStorage = require('./canUseLocalStorage.js');
 
-function premock(promise) {
-	var maybeFunction = new MaybeFunction(onImplemented);
-	var callStore = new CallStore();	
+function premock(name, promise) {
+    name = name.toString();
+
+    if (canUseLocalStorage() === false) {
+        throw new Error('Premock: did not detect localStorage');
+    }
+
+    if (typeof name !== 'string') {
+        throw new Error('Premock: needs a storage ID key');
+    }
+
+    return createMockUsingStore(new LocalCallStore(name), promise);
+}
+
+function premockWithoutPersistence(promise) {
+	return createMockUsingStore(new HeapCallStore(), promise);
+}
+
+function createMockUsingStore(callStore, implementationPromise) {
+	var maybeFunction = new MaybeFunction();
 	var proxy = createProxy(maybeFunction.getImplementation, callStore);
 
-	proxy.resolve = maybeFunction.resolveImplementation;
-	if (promise && promise.then) {
-		promise.then(maybeFuction.resolveImplementation);
+	proxy.resolve = function resolvePremock(implementation) {
+		maybeFunction.resolveImplementation(implementation);
+		replayCalls(callStore.getCalls(), implementation);
+	};
+
+	if (implementationPromise && implementationPromise.then) {
+		implementationPromise.then(proxy.resolve);
 	}
 
 	return proxy;
-
-	function onImplemented(implementation) {
-		replayCalls(callStore.getCalls(), implementation);
-	}
 }
-},{"./CallStore.js":1,"./MaybeFunction.js":2,"./createProxy.js":3,"./replayCalls.js":6}],6:[function(require,module,exports){
+},{"./HeapCallStore.js":1,"./LocalCallStore.js":2,"./MaybeFunction.js":3,"./canUseLocalStorage.js":4,"./createProxy.js":5,"./replayCalls.js":8}],8:[function(require,module,exports){
 module.exports = replayCalls;
 
 // Ghetto dependency injection
@@ -110,11 +251,16 @@ function replayCalls(calls, implementation) {
 	// We give each call its own event so that if one throws an exception, the others still run
 	calls.forEach(function(call){
 		var result;
+		var thisBinding = call.thisBinding || null; // Calls from previous pages will lack bindings
 		defer(function(){
-			result = implementation.apply(call.thisBinding, call.callArguments);
-			call.onExecuted(result);
+            // todo - there is a bug here, where a faulty set of params in localStorage will never clear, because onExecuted isn't called if the implementation throws an error
+
+			result = implementation.apply(thisBinding, call.callArguments);
+			if (call.onExecuted) {
+                call.onExecuted(result);
+            }
 		});
 	});
 }
-},{"./defer.js":4}]},{},[5])(5)
+},{"./defer.js":6}]},{},[7])(7)
 });

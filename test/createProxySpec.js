@@ -29,12 +29,12 @@ describe('createProxy', ()=> {
 		});
 
 		it('Returns a promise if it can use Promises', ()=> {
-			function MockPromise() {};
+			function MockPromise() {}
 			createProxy._Promise = MockPromise;
 
 			proxy = createProxy(mockGetImplementation, mockCallStore);
 			expect(proxy()).toEqual(jasmine.any(MockPromise));
-		})
+		});
 
 		describe('When the implementation does not yet exist', ()=> {
 			beforeEach(()=> {
@@ -47,20 +47,20 @@ describe('createProxy', ()=> {
 				expect(mockCallStore.record).toHaveBeenCalled();
 			});
 
-			it('passes the "this" binding of the call as the first record argument', ()=> {
+			it('call arguments are passed to the store as the first record argument', ()=> {
+				proxy(123, 456);
+				const recordArgs = mockCallStore.record.calls.mostRecent().args;
+
+				expect(recordArgs[0]).toEqual([123, 456]);
+			});
+
+			it('passes the "this" binding of the call as the second record argument', ()=> {
 				const mockThis = {};
 				const boundProxy = proxy.bind(mockThis);
 				boundProxy();
 				const recordArgs = mockCallStore.record.calls.mostRecent().args;
 
-				expect(recordArgs[0]).toBe(mockThis);
-			})
-
-			it('call arguments are passed to the store as the second argument', ()=> {
-				proxy(123, 456);
-				const recordArgs = mockCallStore.record.calls.mostRecent().args;
-
-				expect(recordArgs[1]).toEqual([123, 456]);
+				expect(recordArgs[1]).toBe(mockThis);
 			});
 
 			it('a resolver for the returned promise is passed as the third argument', (done)=> {
@@ -97,7 +97,7 @@ describe('createProxy', ()=> {
 				boundProxy();
 				const passedThisValue = mockImplementation.calls.mostRecent().object;
 				expect(passedThisValue).toBe(mockThis);
-			})
+			});
 
 			it('does not swallow exceptions', ()=> {
 				mockImplementation = ()=> {
@@ -105,7 +105,7 @@ describe('createProxy', ()=> {
 				};
 				const callBrokenImplementation = ()=> {proxy()};
 				expect(callBrokenImplementation).toThrowError('Mock error string');
-			})
+			});
 
 			it('resolves the returned promise immediately', (done)=> {
 				const callPromise = proxy();

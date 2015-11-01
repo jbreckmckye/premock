@@ -9,23 +9,30 @@ function createProxy(getImplementation, callStore) {
 
 		var args = Array.prototype.slice.call(arguments);
 		var implementation = getImplementation();
-		var callPromise;
-		var onRealCall;
-		var callReturn;
+		var returnedPromise;
+		var returnedPromiseResolver = null;
 
 		if (Promise) {
-			callPromise = new Promise(function(resolve){
-				onRealCall = resolve;
+            // If we can, we return a promise of the call`s eventual execution
+            // When the implementation is delivered, that promise is resolved with
+            // the return value of the replay
+			returnedPromise = new Promise(function(resolve){
+				returnedPromiseResolver = resolve;
 			});
 		}
 
 		if (implementation) {
-			callReturn = implementation.apply(this, args);
-			onRealCall(callReturn);
+			var callReturn = implementation.apply(this, args);
+            if (returnedPromise) {
+                returnedPromiseResolver(callReturn);
+            } else {
+                return callReturn;
+            }
 		} else {
-			callStore.record(this, args, onRealCall);
+			callStore.record(args, this, returnedPromiseResolver);
+			// Passing in the 'this' value means we can bind object methods
 		}
 
-		return callPromise || undefined;
+		return returnedPromise || undefined;
 	};
 }
