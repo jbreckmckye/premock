@@ -13,6 +13,8 @@ var replayCalls = require('./replayCalls.js');
 var canUseLocalStorage = require('./canUseLocalStorage.js');
 
 function premock(name, promise) {
+    name = name.toString();
+
     if (canUseLocalStorage() === false) {
         throw new Error('Premock: did not detect localStorage');
     }
