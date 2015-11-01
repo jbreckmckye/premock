@@ -2,13 +2,11 @@
 Store up commands for a function you can't run yet, and dispatch them later when you can - even if that's one another pageview
 
 ## What is this for?
-Have you ever wanted to store up commands to be run on a subsequent pageview? Or had an operation you absolutely _must_ perform, but that depends on something that might not have always loaded before the user leaves the page?
+- "I want to run this function, but I can't guarantee it'll load before the user navigates away. Can I store the command up to be run later?"
+- "I don't have this function loaded yet, but I'd like to call it as though it was, and execute it later"
+- "I have something I need to run at some point, but I can't do it on this page, because I want to keep this page lightweight / wait for an SSL page / it does something with the next page"
 
-Alternatively, do you have anything you'd like to do on the client, but don't care when? Running the action on a different page might sometimes be helpful - you can avoid bundling anything big on all your pages, or only run certain actions on SSL pages.
-
-Premock lets you handle that. It creates an 'ahead proxy' that stores up commands, putting them in localStorage in case the user refreshes the page. You can then resolve that proxy with an implementation, and premock will dispatch the stored commands against it.
-
-You don't need to have promises available, and you don't need a particularly modern browser. IE9+ will work fine out of the box. IE8 will work if you can shim array methods.
+Premock lets you handle all of these scenarios. It creates an 'ahead proxy' that stores up commands, putting them in localStorage in case the user refreshes the page. You can then resolve that proxy with an implementation, and premock will dispatch the stored commands against it.
 
 ## Basic example with cross-page persistence
 
