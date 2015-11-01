@@ -1,6 +1,6 @@
 {
   "name": "premock",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Mock a function that doesn't exist yet, record calls made to it, and then pass those calls to the function when it finally arrives",
   "main": "premock.js",
   "scripts": {

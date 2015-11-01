@@ -1,5 +1,5 @@
 # Premock
-Store up commands for a function you can't run yet, and dispatch them later when you can - even if that's one another pageview
+Store up commands for a function you can't run yet, and dispatch them later when you can - even if that's on another pageview
 
 ## What is this for?
 - "I want to run this function, but I can't guarantee it'll load before the user navigates away. Can I store the command up to be run later?"
