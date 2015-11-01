@@ -1,17 +1,27 @@
 # Premock
-Store up commands for a function that doesn't yet exist, and run those commands once it does.
+Store up commands for a function you can't run yet, and dispatch them later when you can - even if that's one another pageview
 
 ## What is this for?
-Working on the web, we don't always have our JavaScript dependencies available at the time we'd ideally like to use them. Maybe our dependency is in an asynchronously loaded script. Or maybe we're not sure if it'll always load quickly. Wouldn't it be nice if we could pretend that they exist, and call them like ordinary functions?
+Have you ever wanted to store up commands to be run on a subsequent pageview? Or had an operation you absolutely _must_ perform, but that depends on something that might not have always loaded before the user leaves the page?
 
-Well, with Premock, you can.
+Alternatively, do you have anything you'd like to do on the client, but don't care when? Running the action on a different page might sometimes be helpful - you can avoid bundling anything big on all your pages, or only run certain actions on SSL pages.
 
-## Basic example
+Premock lets you handle that. It creates an 'ahead proxy' that stores up commands, putting them in localStorage in case the user refreshes the page. You can then resolve that proxy with an implementation, and premock will dispatch the stored commands against it.
 
-    let premocked = premock();
+You don't need to have promises available, and you don't need a particularly modern browser. IE9+ will work fine out of the box. IE8 will work if you can shim array methods.
+
+## Basic example with cross-page persistence
+
+    let premocked = premock('functionName'); // creates a 'proxy'
 
     premocked(1); // Neither of these do anything ...yet
     premocked(2);
+    
+    ~~~
+    [REFRESH THE PAGE]
+    ~~~
+    
+    let premocked = premock('functionName'); // you must pass the same key
 
     function printDouble(x) {
     	console.log(x * 2);
@@ -26,18 +36,43 @@ Well, with Premock, you can.
 
 Premock stores up your calls until you can resolve it with a real function. Then it replays your original calls using that implementation. Subsequent calls go straight to the real function.
 
+## Without cross-page persistence
+
+If you don't want to store calls in localStorage, for whatever reason, you can use `premock.withoutPersistence`.
+
+    let premocked = premock.withoutPersistence(); // no key required
+    
+    premocked(1); // Neither of these do anything ...yet
+    premocked(2);
+    
+    function printDouble(x) {
+        console.log(x * 2);
+    }
+    
+    premocked.resolve(printDouble);
+    // '2' printed to console
+    // '4' printed to console
+    
+    premocked(3);
+    // '6' printed to console
+
 ## Argument-passing
 
-Premock can happily handle multiple arguments. It will also pass through the `this` binding available to the premock proxy function. Remember to use `bind` if you want to change that.
+You can pass any number of arguments when calling the proxy.
+
+If you are using cross-page persistence, your arguments will need to be serializable. If you pass arguments with circular references, you may get a `JSON.stringify` exception.
+
+If you are using `premock.withoutPersistence`, premock will preserve the proxy's `this` binding, which you can control with the `bind` method.
 
 ## Dealing with return values
 
-If Premock is run in an environment with promises (that is, where `window.Promise` is not undefined), it will use them to construct a return value for premock calls. That promise will be resolved with the return value of the call.
-
-    let premocked = premock();
+If Premock is run in an environment with promises (that is, where `window.Promise` is not undefined), it will use them to construct a return value for premock calls. If the premock is resolved with an implementation in _the same pageview_, those promises will be resolved with the return value of the real function call.
+    
+    let premocked = premock('foo');
 
     let promise = premocked('Kathy');
     promise.then(function(resolvedValue){
+        // Print the promise's resolved value to the console
     	console.log(resolvedValue);
     });
 
@@ -46,10 +81,16 @@ If Premock is run in an environment with promises (that is, where `window.Promis
     }
 
     premocked.resolve(greeter);
-    // 'Hello, Kathy!' printed to console
+    // 'Kathy' is passed to greeter...
+    // Greeter returns 'Hello, Kathy!'...
+    // Premock resolves 'promise' with 'Hello, Kathy!'...
+    // 'Hello, Kathy!' is printed to the console
 
 If Premock is run in an environment _without_ promises, mocks will return `undefined` until the implementation is resolved - at which point it'll just pass the results back on.
 
+### Error handling
+
+If replaying any function calls throws an exception, premock will not swallow the error (meaning - you will see it in the console), and it will not stop dispatching the other calls.
 
 ## Resolving with promises
 
@@ -65,17 +106,15 @@ You don't have to call the `resolve` method yourself. You can pass premock a pro
 		}
 	});
 
-	let premocked = premock(eventualFunction);
+	let premocked = premock('foo', eventualFunction);
 
 	premocked('Maximillian');
 
 	// three seconds later, the console prints:
 	// "Sorry about the delay, Maximillian"
+	
+When calling `premock.withoutPersistence`, the resolver promise is the first argument.
 
 ## Using the library
 
 Just take the `premock.js` file at the root of this project and include it in your deployed scripts. Note that it is not minified.
-
-## [Feature request] Cross-page persistence
-
-One thing that might be interesting is if premock could persist calls in localstorage or similar - so that calls could be premocked across entire pageviews! Obviously, this would only really work with functions that only had side effects, like making logging calls to a server. And the call arguments would have to be serializable. Let me know if you think it could be useful.
