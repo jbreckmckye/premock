@@ -1,12 +1,12 @@
 'use strict';
 
-const createProxy = require('../src/createProxy.js');
+const createFunctionProxy = require('../src/createFunctionProxy.js');
 
-describe('createProxy', ()=> {
+describe('createFunctionProxy', ()=> {
 	
 	describe('The proxy factory', ()=> {
 		it('Returns a function', ()=> {
-			expect(createProxy()).toEqual(jasmine.any(Function));
+			expect(createFunctionProxy()).toEqual(jasmine.any(Function));
 		});
 	});
 
@@ -18,28 +18,28 @@ describe('createProxy', ()=> {
 			mockCallStore = {
 				record : jasmine.createSpy('mockCallStore.record')
 			};
-			createProxy._Promise = window.Promise;		
+			createFunctionProxy._Promise = window.Promise;		
 		});
 
 		it('Returns undefined if it cannot use Promises', ()=> {
-			createProxy._Promise = undefined;
+			createFunctionProxy._Promise = undefined;
 
-			proxy = createProxy(mockGetImplementation, mockCallStore);
+			proxy = createFunctionProxy(mockGetImplementation, mockCallStore);
 			expect(proxy()).toBeUndefined();
 		});
 
 		it('Returns a promise if it can use Promises', ()=> {
 			function MockPromise() {}
-			createProxy._Promise = MockPromise;
+			createFunctionProxy._Promise = MockPromise;
 
-			proxy = createProxy(mockGetImplementation, mockCallStore);
+			proxy = createFunctionProxy(mockGetImplementation, mockCallStore);
 			expect(proxy()).toEqual(jasmine.any(MockPromise));
 		});
 
 		describe('When the implementation does not yet exist', ()=> {
 			beforeEach(()=> {
 				mockImplementation = null;
-				proxy = createProxy(mockGetImplementation, mockCallStore);
+				proxy = createFunctionProxy(mockGetImplementation, mockCallStore);
 			});
 
 			it('the proxy records a call with the call store', ()=> {
@@ -78,7 +78,7 @@ describe('createProxy', ()=> {
 		describe('When the implementation does exist', ()=> {
 			beforeEach(()=> {
 				mockImplementation = jasmine.createSpy('mockImplementation');
-				proxy = createProxy(mockGetImplementation, mockCallStore);
+				proxy = createFunctionProxy(mockGetImplementation, mockCallStore);
 			});
 
 			it('calls that implementation', ()=> {
