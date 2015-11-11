@@ -18,7 +18,8 @@ function premock(name, promise) {
         throw new Error('Premock: did not detect localStorage');
     }
 
-    return createMockUsingStore(new LocalCallStore(name.toString()), promise);
+    var localCallStore = new LocalCallStore(name.toString());
+    return createMockUsingStore(localCallStore, promise);
 }
 
 function premockWithoutPersistence(promise) {
