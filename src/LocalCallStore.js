@@ -3,7 +3,7 @@ module.exports = LocalCallStore;
 LocalCallStore._storage = window.localStorage;
 
 /**
- * CallPersistence: save the details of function calls to localStorage,
+ * LocalCallStore: save the details of function calls to localStorage,
  * and let us fish them out, too.
  * @param storageKey String: key our calls will be stored against
  */
