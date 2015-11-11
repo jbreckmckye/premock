@@ -1,11 +1,11 @@
-module.exports = createProxy;
+module.exports = createFunctionProxy;
 
 // Ghetto dependency injection
-createProxy._Promise = window.Promise || null;
+createFunctionProxy._Promise = window.Promise || null;
 
-function createProxy(getImplementation, callStore) {
-	return function premocked() {
-		var Promise = createProxy._Promise;
+function createFunctionProxy(getImplementation, callStore) {
+	return function functionProxy() {
+		var Promise = createFunctionProxy._Promise;
 
 		var args = Array.prototype.slice.call(arguments);
 		var implementation = getImplementation();
