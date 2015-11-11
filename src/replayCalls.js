@@ -17,14 +17,14 @@ function replayCalls(calls, implementation) {
 			} catch (e) {
 			    errors = e;
 			}
-			
+
 			if (call.onExecuted) {
-                            call.onExecuted(result);
-                        }
-                        
-                        if (errors) {
-                            throw errors;
-                        }
+				call.onExecuted(result);
+			}
+
+			if (errors) {
+				throw errors;
+			}
 		});
 	});
 }

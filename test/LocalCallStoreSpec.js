@@ -210,17 +210,19 @@ describe('Local call store', ()=> {
         });
 
         function BreakableStorage() {
+            var store = {};
+
             this.shouldThrow = false;
             this.storageException = new Error('Mock storage exception');
 
             this.getItem = (key) => {
-                return window.localStorage.getItem(key);
+                return store[key];
             };
             this.setItem = (key, value)=> {
                 if (this.shouldThrow) {
                     throw this.storageException;
                 } else {
-                    window.localStorage.setItem(key, value);
+                    store[key] = value;
                 }
             };
         }

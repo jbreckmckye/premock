@@ -63,13 +63,38 @@ describe('replayCalls', ()=> {
             expect(mockImplementation).toHaveBeenCalled();
         });
 
+        it('Does not swallow exceptions thrown by the call', ()=> {
+            // Replay calls synchronously for ease of testing
+            replayCalls._defer = (fn) => {fn()};
+            const mockError = new Error('Expected error');
+            const mockImplementation = ()=> {throw mockError};
+            expect(()=> {
+                replayCalls([new MockCall()], mockImplementation);
+            }).toThrow(mockError);
+        });
+
 		it('The onExecuted callback is run with the return value of the invocation as its argument', ()=> {
+            // Replay calls synchronously for ease of testing
+            replayCalls._defer = (fn) => {fn()};
 			const mockImplementation = ()=> {return 123};
-			replayCalls._defer = (fn)=> {fn()}; // use synchronous implementation
 
 			replayCalls(mockCalls, mockImplementation);
 			expect(mockOnExecuted).toHaveBeenCalledWith(123);			
 		});
+
+        it('Still runs the onExecuted callback even if the call throws an error', ()=> {
+            // This is important, as otherwise we'd never delete the data for invalid calls
+
+            // Replay calls synchronously for ease of testing
+            replayCalls._defer = (fn) => {fn()};
+            const mockError = new Error('Expected error');
+            const mockImplementation = ()=> {throw mockError};
+            try {
+                replayCalls([new MockCall(), mockImplementation]);
+            } catch (e) {}
+
+            expect(mockOnExecuted).toHaveBeenCalled();
+        });
 
 	});	
 
