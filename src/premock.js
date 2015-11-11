@@ -5,7 +5,7 @@ module.exports =    premock;
 var MaybeFunction = require('./MaybeFunction.js');
 var HeapCallStore = require('./HeapCallStore.js');
 var LocalCallStore = require('./LocalCallStore.js');
-var createProxy = require('./createProxy.js');
+var createFunctionProxy = require('./createFunctionProxy.js');
 var replayCalls = require('./replayCalls.js');
 var canUseLocalStorage = require('./canUseLocalStorage.js');
 
@@ -28,7 +28,7 @@ function premockWithoutPersistence(promise) {
 
 function createMockUsingStore(callStore, implementationPromise) {
 	var maybeFunction = new MaybeFunction();
-	var proxy = createProxy(maybeFunction.getImplementation, callStore);
+	var proxy = createFunctionProxy(maybeFunction.getImplementation, callStore);
 
 	proxy.resolve = function resolvePremock(implementation) {
 		maybeFunction.resolveImplementation(implementation);
