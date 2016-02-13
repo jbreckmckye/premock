@@ -25,16 +25,17 @@ function LaterFunction() {
 	this.existsYet = false;
 
 	this.resolve = function(fn) {
-        if (!implementation) {
-            implementation = fn;
-            this.existsYet = true;
-        }
+	        if (!implementation) {
+	            implementation = fn;
+	            this.existsYet = true;
+	        }
 	};
 
 	this.getImplementation = function() {
 		return implementation;
 	};
 }
+
 },{}],3:[function(require,module,exports){
 module.exports = LocalCallStore;
 
@@ -151,27 +152,26 @@ function premockWithoutPersistence(promise) {
 }
 
 function createPremocker(callStore, pendingImplementation) {
-	var laterFunction = new LaterFunction();
+    var laterFunction = new LaterFunction();
 
-    // Create a proxy for our upcoming function.
-    // It will pass calls to the callstore until it can call the laterFunction
-	var proxy = createRouter(laterFunction, callStore);
+    // Create a 'router' that will pass calls to either the laterFunction (if it exists), or the callStore (otherwise)
+    var callRouter = createRouter(laterFunction, callStore);
 
     // Create a means to resolve the laterFunction
-	proxy.resolve = function resolvePremock(implementation) {
-		laterFunction.resolve(implementation);
-		replayCalls(callStore.getCalls(), implementation);
-	};
+    callRouter.resolve = function resolvePremock(implementation) {
+        laterFunction.resolve(implementation);
+        replayCalls(callStore.getCalls(), implementation);
+    };
 
-    // We can pass in a 'pendingImplementation' promise that will replaced the premocked function on resolution
-	if (pendingImplementation && pendingImplementation.then) {
-		pendingImplementation.then(proxy.resolve);
-	}
+    // We can resolve the laterFunction with a passed-in promise
+    if (pendingImplementation && pendingImplementation.then) {
+        pendingImplementation.then(callRouter.resolve);
+    }
 
-	return proxy;
+    return callRouter;
 }
 
-},{"./HeapCallStore.js":1,"./LaterFunction.js":2,"./LocalCallStore.js":3,"./canUseLocalStorage.js":5,"./createRouter.js":7,"./replayCalls.js":8}],5:[function(require,module,exports){
+},{"./HeapCallStore.js":1,"./LaterFunction.js":2,"./LocalCallStore.js":3,"./canUseLocalStorage.js":5,"./createRouter.js":6,"./replayCalls.js":8}],5:[function(require,module,exports){
 module.exports = canUseLocalStorage;
 
 // Expose dependencies for testing
@@ -203,12 +203,6 @@ function canUseLocalStorage() {
     }
 }
 },{}],6:[function(require,module,exports){
-module.exports = defer;
-
-function defer(fn) {
-	window.setTimeout(fn, 0);
-}
-},{}],7:[function(require,module,exports){
 module.exports = createRouter;
 
 // Ghetto dependency injection
@@ -218,12 +212,12 @@ createRouter._Promise = window.Promise || null;
 // The proxy will route calls to either the real implementation - if it exists -
 // or the call storage object.
 function createRouter(laterFunction, callStore) {
-	return function functionProxy() {
+	return function router() {
 		var Promise = createRouter._Promise;
 		var args = Array.prototype.slice.call(arguments);
 
 		if (laterFunction.existsYet) {
-            var implementation = laterFunction.getImplementation();
+			var implementation = laterFunction.getImplementation();
 			var callReturn = implementation.apply(this, args);
 			if (Promise) {
 				return Promise.resolve(callReturn);
@@ -231,18 +225,24 @@ function createRouter(laterFunction, callStore) {
 				return callReturn;
 			}
 		} else {
-            if (Promise) {
-                var that = this;
-                return new Promise(function(resolve){
-                    callStore.record(args, that, resolve);
-                });
-            } else {
-                callStore.record(args, this, null);
-            }
+			if (Promise) {
+				var that = this;
+				return new Promise(function(resolve){
+					callStore.record(args, that, resolve);
+				});
+			} else {
+				callStore.record(args, this, null);
+			}
 		}
 	};
 }
 
+},{}],7:[function(require,module,exports){
+module.exports = defer;
+
+function defer(fn) {
+	window.setTimeout(fn, 0);
+}
 },{}],8:[function(require,module,exports){
 module.exports = replayCalls;
 
@@ -275,5 +275,5 @@ function replayCalls(calls, implementation) {
 	});
 }
 
-},{"./defer.js":6}]},{},[4])(4)
+},{"./defer.js":7}]},{},[4])(4)
 });
