@@ -30,19 +30,19 @@ function premockWithoutPersistence(promise) {
 function createPremocker(callStore, pendingImplementation) {
     var laterFunction = new LaterFunction();
 
-    // Create a 'router' that will pass calls to either the laterFunction (if it exists), or the callStore (otherwise)
-    var callRouter = createRouter(laterFunction, callStore);
+    // The premocker is a router that passes calls to either the laterFunction (if it exists), or the callStore
+    var premocker = createRouter(laterFunction, callStore);
 
     // Create a means to resolve the laterFunction
-    callRouter.resolve = function resolvePremock(implementation) {
+    premocker.resolve = function resolvePremock(implementation) {
         laterFunction.resolve(implementation);
         replayCalls(callStore.getCalls(), implementation);
     };
 
     // We can resolve the laterFunction with a passed-in promise
     if (pendingImplementation && pendingImplementation.then) {
-        pendingImplementation.then(callRouter.resolve);
+        pendingImplementation.then(premocker.resolve);
     }
 
-    return callRouter;
+    return premocker;
 }
