@@ -70,7 +70,7 @@ describe('createFunctionProxy', ()=> {
 
 				expect(resolver).toEqual(jasmine.any(Function));
 
-				callPromise.then(done); // fails test if not called
+				callPromise.then(done); // lets us fail the test if the promise doesn't get resolved
 				resolver();
 			});
 		});
