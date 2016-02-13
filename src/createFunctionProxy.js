@@ -21,9 +21,13 @@ function createFunctionProxy(getImplementation, callStore) {
 				return callReturn;
 			}
 		} else {
-			return new Promise(function(resolve){
-				callStore.record(args, this, resolve);
-			});
+            if (Promise) {
+                return new Promise(function(resolve){
+                    callStore.record(args, this, resolve);
+                });
+            } else {
+                callStore.record(args, this, null);
+            }
 		}
 	};
 }
