@@ -27,7 +27,7 @@ function premockWithoutPersistence(promise) {
 	return createPremocker(callStore, promise);
 }
 
-function createPremocker(callStore, implementationPromise) {
+function createPremocker(callStore, pendingImplementation) {
 	var maybeFunction = new MaybeFunction();
 	var proxy = proxyLaterFunction(maybeFunction.getImplementation, callStore);
 
@@ -36,8 +36,9 @@ function createPremocker(callStore, implementationPromise) {
 		replayCalls(callStore.getCalls(), implementation);
 	};
 
-	if (implementationPromise && implementationPromise.then) {
-		implementationPromise.then(proxy.resolve);
+    // We can pass in a 'pendingImplementation' promise that will replaced the premocked function on resolution
+	if (pendingImplementation && pendingImplementation.then) {
+		pendingImplementation.then(proxy.resolve);
 	}
 
 	return proxy;
