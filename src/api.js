@@ -29,7 +29,7 @@ function premockWithoutPersistence(promise) {
 
 function createPremocker(callStore, pendingImplementation) {
 	var laterFunction = new LaterFunction();
-	var proxy = proxyLaterFunction(laterFunction.getImplementation, callStore);
+	var proxy = proxyLaterFunction(laterFunction, callStore);
 
 	proxy.resolve = function resolvePremock(implementation) {
 		laterFunction.resolve(implementation);

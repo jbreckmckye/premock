@@ -2,42 +2,51 @@
 
 const LaterFunction = require('../src/LaterFunction.js');
 
-describe('MaybeFunction', ()=> {
+describe('MaybeLaterFunction', ()=> {
 	const mockImplementation = ()=> {};
-	let maybeFunction;
+	let laterFunction;
 
 	beforeEach(()=> {
-		maybeFunction = new LaterFunction();
+		laterFunction = new LaterFunction();
 	});
 
 	it('has a getImplementation method', ()=> {
-		expect(maybeFunction.getImplementation).toEqual(jasmine.any(Function));
+		expect(laterFunction.getImplementation).toEqual(jasmine.any(Function));
 	});
 
 	it('has a resolve method', ()=> {
-		expect(maybeFunction.resolve).toEqual(jasmine.any(Function));
+		expect(laterFunction.resolve).toEqual(jasmine.any(Function));
 	});
 
 	it('resolve can take a function', ()=> {
 		expect(()=> {
-			maybeFunction.resolve(()=> {});
+			laterFunction.resolve(()=> {});
 		}).not.toThrow();
 	});
 
 	it('before the implementation is resolved, getImplementation returns null', ()=> {
-		expect(maybeFunction.getImplementation()).toEqual(null);
+		expect(laterFunction.getImplementation()).toEqual(null);
 	});
 
+    it('before the implementation is resolved, existsYet equals false', ()=> {
+        expect(laterFunction.existsYet).toEqual(false);
+    });
+
 	it('after the implementation is resolved, getImplementation returns the resolving function', ()=> {		
-		maybeFunction.resolve(mockImplementation);
-		expect(maybeFunction.getImplementation()).toBe(mockImplementation);
+		laterFunction.resolve(mockImplementation);
+		expect(laterFunction.getImplementation()).toBe(mockImplementation);
 	});
+
+    it('after the implementation is resolved, existsYet equals true', ()=> {
+        laterFunction.resolve(mockImplementation);
+        expect(laterFunction.existsYet).toBe(true);
+    });
 
 	it('does not allow the resolved implementation to be overwritten', ()=> {
 		const secondMockImplementation = ()=> {};
-		maybeFunction.resolve(mockImplementation);
-		maybeFunction.resolve(secondMockImplementation);
-		expect(maybeFunction.getImplementation()).toBe(mockImplementation);
+		laterFunction.resolve(mockImplementation);
+		laterFunction.resolve(secondMockImplementation);
+		expect(laterFunction.getImplementation()).toBe(mockImplementation);
 	});
 
 });

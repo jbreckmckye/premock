@@ -22,9 +22,14 @@ module.exports = LaterFunction;
 function LaterFunction() {
 	var implementation = null;
 
+	this.existsYet = false;
+
+    this.existsYet = false;
+
 	this.resolve = function(fn) {
         if (!implementation) {
             implementation = fn;
+            this.existsYet = true;
         }
 	};
 
@@ -149,7 +154,7 @@ function premockWithoutPersistence(promise) {
 
 function createPremocker(callStore, pendingImplementation) {
 	var laterFunction = new LaterFunction();
-	var proxy = proxyLaterFunction(laterFunction.getImplementation, callStore);
+	var proxy = proxyLaterFunction(laterFunction, callStore);
 
 	proxy.resolve = function resolvePremock(implementation) {
 		laterFunction.resolve(implementation);
@@ -210,13 +215,14 @@ proxyLaterFunction._Promise = window.Promise || null;
 // Create a proxy for our future function.
 // The proxy will route calls to either the real implementation - if it exists -
 // or the call storage object.
-function proxyLaterFunction(getLaterFunction, callStore) {
+function proxyLaterFunction(laterFunction, callStore) {
 	return function functionProxy() {
 		var Promise = proxyLaterFunction._Promise;
 		var args = Array.prototype.slice.call(arguments);
-		var laterFunction = getLaterFunction();
-		if (laterFunction) {
-			var callReturn = laterFunction.apply(this, args);
+
+		if (laterFunction.existsYet) {
+            var implementation = laterFunction.getImplementation();
+			var callReturn = implementation.apply(this, args);
 			if (Promise) {
 				return Promise.resolve(callReturn);
 			} else {

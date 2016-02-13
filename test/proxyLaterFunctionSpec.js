@@ -1,6 +1,7 @@
 'use strict';
 
 const proxyLaterFunction = require('../src/proxyLaterFunction.js');
+const LaterFunction = require('../src/LaterFunction.js');
 
 describe('proxyLaterFunction', ()=> {
 	
@@ -11,10 +12,10 @@ describe('proxyLaterFunction', ()=> {
 	});
 
 	describe('The proxy function', ()=> {
-		let mockImplementation, mockCallStore, mockGetImplementation, proxy;
+		let mockImplementation, mockCallStore, laterFunction, proxy;
 
 		beforeEach(()=> {
-			mockGetImplementation = ()=> {return mockImplementation};
+			laterFunction = new LaterFunction();
 			mockCallStore = {
 				record : jasmine.createSpy('mockCallStore.record')
 			};
@@ -24,7 +25,7 @@ describe('proxyLaterFunction', ()=> {
 		it('Returns undefined if it cannot use Promises', ()=> {
 			proxyLaterFunction._Promise = undefined;
 
-			proxy = proxyLaterFunction(mockGetImplementation, mockCallStore);
+			proxy = proxyLaterFunction(laterFunction, mockCallStore);
 			expect(proxy()).toBeUndefined();
 		});
 
@@ -32,14 +33,14 @@ describe('proxyLaterFunction', ()=> {
 			function MockPromise() {}
 			proxyLaterFunction._Promise = MockPromise;
 
-			proxy = proxyLaterFunction(mockGetImplementation, mockCallStore);
+			proxy = proxyLaterFunction(laterFunction, mockCallStore);
 			expect(proxy()).toEqual(jasmine.any(MockPromise));
 		});
 
 		describe('When the implementation does not yet exist', ()=> {
 			beforeEach(()=> {
-				mockImplementation = null;
-				proxy = proxyLaterFunction(mockGetImplementation, mockCallStore);
+				laterFunction = new LaterFunction();
+				proxy = proxyLaterFunction(laterFunction, mockCallStore);
 			});
 
 			it('the proxy records a call with the call store', ()=> {
@@ -77,8 +78,10 @@ describe('proxyLaterFunction', ()=> {
 
 		describe('When the implementation does exist', ()=> {
 			beforeEach(()=> {
+				laterFunction = new LaterFunction();
 				mockImplementation = jasmine.createSpy('mockImplementation');
-				proxy = proxyLaterFunction(mockGetImplementation, mockCallStore);
+				laterFunction.resolve(mockImplementation);
+				proxy = proxyLaterFunction(laterFunction, mockCallStore);
 			});
 
 			it('calls that implementation', ()=> {
@@ -100,9 +103,7 @@ describe('proxyLaterFunction', ()=> {
 			});
 
 			it('does not swallow exceptions', ()=> {
-				mockImplementation = ()=> {
-					throw new Error('Mock error string');
-				};
+				mockImplementation.and.throwError('Mock error string');
 				const callBrokenImplementation = ()=> {proxy()};
 				expect(callBrokenImplementation).toThrowError('Mock error string');
 			});
@@ -113,9 +114,7 @@ describe('proxyLaterFunction', ()=> {
 			}, 50);
 
 			it('the promise is resolved with the return value of the call', (done)=> {
-				mockImplementation = ()=> {
-					return 'foo'
-				};
+				mockImplementation.and.returnValue('foo');
 				const callPromise = proxy();
 				callPromise.then(function(resolvedValue){
 					expect(resolvedValue).toBe('foo');
