@@ -11,7 +11,6 @@ function proxyLaterFunction(getLaterFunction, callStore) {
 		var Promise = proxyLaterFunction._Promise;
 		var args = Array.prototype.slice.call(arguments);
 		var laterFunction = getLaterFunction();
-
 		if (laterFunction) {
 			var callReturn = laterFunction.apply(this, args);
 			if (Promise) {
@@ -21,8 +20,9 @@ function proxyLaterFunction(getLaterFunction, callStore) {
 			}
 		} else {
             if (Promise) {
+                var that = this;
                 return new Promise(function(resolve){
-                    callStore.record(args, this, resolve);
+                    callStore.record(args, that, resolve);
                 });
             } else {
                 callStore.record(args, this, null);

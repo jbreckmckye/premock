@@ -2,7 +2,7 @@
 
 const proxyLaterFunction = require('../src/proxyLaterFunction.js');
 
-describe('createFunctionProxy', ()=> {
+describe('proxyLaterFunction', ()=> {
 	
 	describe('The proxy factory', ()=> {
 		it('Returns a function', ()=> {
@@ -55,7 +55,7 @@ describe('createFunctionProxy', ()=> {
 			});
 
 			it('passes the "this" binding of the call as the second record argument', ()=> {
-				const mockThis = {};
+				const mockThis = {identifier: 123};
 				const boundProxy = proxy.bind(mockThis);
 				boundProxy();
 				const recordArgs = mockCallStore.record.calls.mostRecent().args;
