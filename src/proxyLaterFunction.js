@@ -12,7 +12,7 @@ function proxyLaterFunction(laterFunction, callStore) {
 		var args = Array.prototype.slice.call(arguments);
 
 		if (laterFunction.existsYet) {
-            var implementation = laterFunction.getImplementation();
+			var implementation = laterFunction.getImplementation();
 			var callReturn = implementation.apply(this, args);
 			if (Promise) {
 				return Promise.resolve(callReturn);
@@ -20,14 +20,14 @@ function proxyLaterFunction(laterFunction, callStore) {
 				return callReturn;
 			}
 		} else {
-            if (Promise) {
-                var that = this;
-                return new Promise(function(resolve){
-                    callStore.record(args, that, resolve);
-                });
-            } else {
-                callStore.record(args, this, null);
-            }
+			if (Promise) {
+				var that = this;
+				return new Promise(function(resolve){
+					callStore.record(args, that, resolve);
+				});
+			} else {
+				callStore.record(args, this, null);
+			}
 		}
 	};
 }

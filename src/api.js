@@ -28,22 +28,22 @@ function premockWithoutPersistence(promise) {
 }
 
 function createPremocker(callStore, pendingImplementation) {
-	var laterFunction = new LaterFunction();
+    var laterFunction = new LaterFunction();
 
     // Create a proxy for our upcoming function.
     // It will pass calls to the callstore until it can call the laterFunction
-	var proxy = proxyLaterFunction(laterFunction, callStore);
+    var proxy = proxyLaterFunction(laterFunction, callStore);
 
     // Create a means to resolve the laterFunction
-	proxy.resolve = function resolvePremock(implementation) {
-		laterFunction.resolve(implementation);
-		replayCalls(callStore.getCalls(), implementation);
-	};
+    proxy.resolve = function resolvePremock(implementation) {
+        laterFunction.resolve(implementation);
+        replayCalls(callStore.getCalls(), implementation);
+    };
 
     // We can pass in a 'pendingImplementation' promise that will replaced the premocked function on resolution
-	if (pendingImplementation && pendingImplementation.then) {
-		pendingImplementation.then(proxy.resolve);
-	}
+    if (pendingImplementation && pendingImplementation.then) {
+        pendingImplementation.then(proxy.resolve);
+    }
 
-	return proxy;
+    return proxy;
 }
