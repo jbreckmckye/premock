@@ -17,12 +17,28 @@ function HeapCallStore() {
 	};
 }
 },{}],2:[function(require,module,exports){
+module.exports = LaterFunction;
+
+function LaterFunction() {
+	var implementation = null;
+
+	this.resolve = function(fn) {
+        if (!implementation) {
+            implementation = fn;
+        }
+	};
+
+	this.getImplementation = function() {
+		return implementation;
+	};
+}
+},{}],3:[function(require,module,exports){
 module.exports = LocalCallStore;
 
 LocalCallStore._storage = window.localStorage;
 
 /**
- * CallPersistence: save the details of function calls to localStorage,
+ * LocalCallStore: save the details of function calls to localStorage,
  * and let us fish them out, too.
  * @param storageKey String: key our calls will be stored against
  */
@@ -35,7 +51,7 @@ function LocalCallStore(storageKey) {
         // So we clone our list before we mutate and commit it,
         // And only mutate the real list once we know the commit worked
 
-        var newDatum = new CallDatum(callArguments, onExecuted);
+        var newDatum = new Call(callArguments, onExecuted);
         var newRecords = callData.concat([newDatum]);
 
         // This might throw an error if storage is full
@@ -70,7 +86,7 @@ function LocalCallStore(storageKey) {
         }
     }
 
-    function CallDatum(args, onExecuted) {
+    function Call(args, onExecuted) {
         this.callArguments = args;
         this.thisBinding = null;
         this.onExecuted = onExecuted;
@@ -80,7 +96,7 @@ function LocalCallStore(storageKey) {
         var rawData = storage.getItem(storageKey);
         var paramsList = rawData ? JSON.parse(rawData) : [];
         return paramsList.map(function(params) {
-            return new CallDatum(params);
+            return new Call(params);
         });
     }
 
@@ -101,23 +117,54 @@ function clone(obj) {
     return JSON.parse(JSON.stringify(obj));
 }
 
-},{}],3:[function(require,module,exports){
-module.exports = MaybeFunction;
-
-function MaybeFunction() {
-	var realFunction = null;
-
-	this.resolve = function(fn) {
-		if (realFunction === null) { // is this guard strictly MaybeFunction's responsibility?
-			realFunction = fn;
-		}		
-	};
-
-	this.getImplementation = function() {
-		return realFunction;
-	};
-}
 },{}],4:[function(require,module,exports){
+// Public exports
+module.exports =    premock;
+                    premock.withoutPersistence = premockWithoutPersistence;
+
+var LaterFunction = require('./LaterFunction.js');
+var HeapCallStore = require('./HeapCallStore.js');
+var LocalCallStore = require('./LocalCallStore.js');
+var proxyLaterFunction = require('./proxyLaterFunction.js');
+var replayCalls = require('./replayCalls.js');
+var canUseLocalStorage = require('./canUseLocalStorage.js');
+
+function premock(name, promise) {
+    if (name === undefined) {
+        throw new Error('Premock: needs a storage ID key');
+    }
+    
+    if (canUseLocalStorage() === false) {
+        throw new Error('Premock: did not detect localStorage');
+    }
+
+    var callStore = new LocalCallStore(name.toString());
+    return createPremocker(callStore, promise);
+}
+
+function premockWithoutPersistence(promise) {
+	var callStore = new HeapCallStore();
+	return createPremocker(callStore, promise);
+}
+
+function createPremocker(callStore, pendingImplementation) {
+	var laterFunction = new LaterFunction();
+	var proxy = proxyLaterFunction(laterFunction.getImplementation, callStore);
+
+	proxy.resolve = function resolvePremock(implementation) {
+		laterFunction.resolve(implementation);
+		replayCalls(callStore.getCalls(), implementation);
+	};
+
+    // We can pass in a 'pendingImplementation' promise that will replaced the premocked function on resolution
+	if (pendingImplementation && pendingImplementation.then) {
+		pendingImplementation.then(proxy.resolve);
+	}
+
+	return proxy;
+}
+
+},{"./HeapCallStore.js":1,"./LaterFunction.js":2,"./LocalCallStore.js":3,"./canUseLocalStorage.js":5,"./proxyLaterFunction.js":7,"./replayCalls.js":8}],5:[function(require,module,exports){
 module.exports = canUseLocalStorage;
 
 // Expose dependencies for testing
@@ -148,46 +195,6 @@ function canUseLocalStorage() {
         }
     }
 }
-},{}],5:[function(require,module,exports){
-module.exports = createProxy;
-
-// Ghetto dependency injection
-createProxy._Promise = window.Promise || null;
-
-function createProxy(getImplementation, callStore) {
-	return function premocked() {
-		var Promise = createProxy._Promise;
-
-		var args = Array.prototype.slice.call(arguments);
-		var implementation = getImplementation();
-		var returnedPromise;
-		var returnedPromiseResolver = null;
-
-		if (Promise) {
-            // If we can, we return a promise of the call`s eventual execution
-            // When the implementation is delivered, that promise is resolved with
-            // the return value of the replay
-			returnedPromise = new Promise(function(resolve){
-				returnedPromiseResolver = resolve;
-			});
-		}
-
-		if (implementation) {
-			var callReturn = implementation.apply(this, args);
-            if (returnedPromise) {
-                returnedPromiseResolver(callReturn);
-            } else {
-                return callReturn;
-            }
-		} else {
-			callStore.record(args, this, returnedPromiseResolver);
-			// Passing in the 'this' value means we can bind object methods
-		}
-
-		return returnedPromise || undefined;
-	};
-}
-
 },{}],6:[function(require,module,exports){
 module.exports = defer;
 
@@ -195,51 +202,40 @@ function defer(fn) {
 	window.setTimeout(fn, 0);
 }
 },{}],7:[function(require,module,exports){
-// Public exports
-module.exports =    premock;
-                    premock.withoutPersistence = premockWithoutPersistence;
+module.exports = proxyLaterFunction;
 
-var MaybeFunction = require('./LaterFunction.js');
-var HeapCallStore = require('./HeapCallStore.js');
-var LocalCallStore = require('./LocalCallStore.js');
-var createProxy = require('./createProxy.js');
-var replayCalls = require('./replayCalls.js');
-var canUseLocalStorage = require('./canUseLocalStorage.js');
+// Ghetto dependency injection
+proxyLaterFunction._Promise = window.Promise || null;
 
-function premock(name, promise) {
-    name = name.toString();
-
-    if (canUseLocalStorage() === false) {
-        throw new Error('Premock: did not detect localStorage');
-    }
-
-    if (typeof name !== 'string') {
-        throw new Error('Premock: needs a storage ID key');
-    }
-
-    return createMockUsingStore(new LocalCallStore(name), promise);
-}
-
-function premockWithoutPersistence(promise) {
-	return createMockUsingStore(new HeapCallStore(), promise);
-}
-
-function createMockUsingStore(callStore, implementationPromise) {
-	var maybeFunction = new MaybeFunction();
-	var proxy = createProxy(maybeFunction.getImplementation, callStore);
-
-	proxy.resolve = function resolvePremock(implementation) {
-		maybeFunction.resolve(implementation);
-		replayCalls(callStore.getCalls(), implementation);
+// Create a proxy for our future function.
+// The proxy will route calls to either the real implementation - if it exists -
+// or the call storage object.
+function proxyLaterFunction(getLaterFunction, callStore) {
+	return function functionProxy() {
+		var Promise = proxyLaterFunction._Promise;
+		var args = Array.prototype.slice.call(arguments);
+		var laterFunction = getLaterFunction();
+		if (laterFunction) {
+			var callReturn = laterFunction.apply(this, args);
+			if (Promise) {
+				return Promise.resolve(callReturn);
+			} else {
+				return callReturn;
+			}
+		} else {
+            if (Promise) {
+                var that = this;
+                return new Promise(function(resolve){
+                    callStore.record(args, that, resolve);
+                });
+            } else {
+                callStore.record(args, this, null);
+            }
+		}
 	};
-
-	if (implementationPromise && implementationPromise.then) {
-		implementationPromise.then(proxy.resolve);
-	}
-
-	return proxy;
 }
-},{"./HeapCallStore.js":1,"./LocalCallStore.js":2,"./MaybeFunction.js":3,"./canUseLocalStorage.js":4,"./createProxy.js":5,"./replayCalls.js":8}],8:[function(require,module,exports){
+
+},{}],8:[function(require,module,exports){
 module.exports = replayCalls;
 
 // Ghetto dependency injection
@@ -253,14 +249,23 @@ function replayCalls(calls, implementation) {
 		var result;
 		var thisBinding = call.thisBinding || null; // Calls from previous pages will lack bindings
 		defer(function(){
-            // todo - there is a bug here, where a faulty set of params in localStorage will never clear, because onExecuted isn't called if the implementation throws an error
+			var errors;
+			try {
+			    result = implementation.apply(thisBinding, call.callArguments);
+			} catch (e) {
+			    errors = e;
+			}
 
-			result = implementation.apply(thisBinding, call.callArguments);
 			if (call.onExecuted) {
-                call.onExecuted(result);
-            }
+				call.onExecuted(result);
+			}
+
+			if (errors) {
+				throw errors;
+			}
 		});
 	});
 }
-},{"./defer.js":6}]},{},[7])(7)
+
+},{"./defer.js":6}]},{},[4])(4)
 });
