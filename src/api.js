@@ -23,7 +23,8 @@ function premock(name, promise) {
 }
 
 function premockWithoutPersistence(promise) {
-	return createPremocker(new HeapCallStore(), promise);
+	var callStore = new HeapCallStore();
+	return createPremocker(callStore, promise);
 }
 
 function createPremocker(callStore, implementationPromise) {
