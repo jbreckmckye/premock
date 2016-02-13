@@ -16,9 +16,9 @@ function createFunctionProxy(getImplementation, callStore) {
 		var returnedPromiseResolver = null;
 
 		if (Promise) {
-            // If we can, we return a promise of the call`s eventual execution
-            // When the implementation is delivered, that promise is resolved with
-            // the return value of the replay
+			// If we can, we return a promise of the call`s eventual execution
+			// When the implementation is delivered, that promise is resolved with
+			// the return value of the replay
 			returnedPromise = new Promise(function(resolve){
 				returnedPromiseResolver = resolve;
 			});
@@ -26,11 +26,11 @@ function createFunctionProxy(getImplementation, callStore) {
 
 		if (implementation) {
 			var callReturn = implementation.apply(this, args);
-            if (returnedPromise) {
-                returnedPromiseResolver(callReturn);
-            } else {
-                return callReturn;
-            }
+			if (returnedPromise) {
+				returnedPromiseResolver(callReturn);
+			} else {
+				return callReturn;
+			}
 		} else {
 			callStore.record(args, this, returnedPromiseResolver);
 			// Passing in the 'this' value means we can bind object methods
