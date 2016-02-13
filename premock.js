@@ -107,7 +107,7 @@ module.exports = MaybeFunction;
 function MaybeFunction() {
 	var realFunction = null;
 
-	this.setImplementation = function(fn) {
+	this.resolve = function(fn) {
 		if (realFunction === null) { // is this guard strictly MaybeFunction's responsibility?
 			realFunction = fn;
 		}		
@@ -199,7 +199,7 @@ function defer(fn) {
 module.exports =    premock;
                     premock.withoutPersistence = premockWithoutPersistence;
 
-var MaybeFunction = require('./MaybeFunction.js');
+var MaybeFunction = require('./LaterFunction.js');
 var HeapCallStore = require('./HeapCallStore.js');
 var LocalCallStore = require('./LocalCallStore.js');
 var createProxy = require('./createProxy.js');
@@ -229,7 +229,7 @@ function createMockUsingStore(callStore, implementationPromise) {
 	var proxy = createProxy(maybeFunction.getImplementation, callStore);
 
 	proxy.resolve = function resolvePremock(implementation) {
-		maybeFunction.setImplementation(implementation);
+		maybeFunction.resolve(implementation);
 		replayCalls(callStore.getCalls(), implementation);
 	};
 
