@@ -16,7 +16,7 @@ function LocalCallStore(storageKey) {
         // So we clone our list before we mutate and commit it,
         // And only mutate the real list once we know the commit worked
 
-        var newDatum = new CallDatum(callArguments, onExecuted);
+        var newDatum = new Call(callArguments, onExecuted);
         var newRecords = callData.concat([newDatum]);
 
         // This might throw an error if storage is full
@@ -51,7 +51,7 @@ function LocalCallStore(storageKey) {
         }
     }
 
-    function CallDatum(args, onExecuted) {
+    function Call(args, onExecuted) {
         this.callArguments = args;
         this.thisBinding = null;
         this.onExecuted = onExecuted;
@@ -61,7 +61,7 @@ function LocalCallStore(storageKey) {
         var rawData = storage.getItem(storageKey);
         var paramsList = rawData ? JSON.parse(rawData) : [];
         return paramsList.map(function(params) {
-            return new CallDatum(params);
+            return new Call(params);
         });
     }
 
