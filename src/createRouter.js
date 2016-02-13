@@ -1,14 +1,14 @@
-module.exports = proxyLaterFunction;
+module.exports = createRouter;
 
 // Ghetto dependency injection
-proxyLaterFunction._Promise = window.Promise || null;
+createRouter._Promise = window.Promise || null;
 
 // Create a proxy for our future function.
 // The proxy will route calls to either the real implementation - if it exists -
 // or the call storage object.
-function proxyLaterFunction(laterFunction, callStore) {
-	return function functionProxy() {
-		var Promise = proxyLaterFunction._Promise;
+function createRouter(laterFunction, callStore) {
+	return function router() {
+		var Promise = createRouter._Promise;
 		var args = Array.prototype.slice.call(arguments);
 
 		if (laterFunction.existsYet) {

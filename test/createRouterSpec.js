@@ -1,17 +1,17 @@
 'use strict';
 
-const proxyLaterFunction = require('../src/proxyLaterFunction.js');
+const createRouter = require('../src/createRouter.js');
 const LaterFunction = require('../src/LaterFunction.js');
 
-describe('proxyLaterFunction', ()=> {
+describe('createRouter', ()=> {
 	
 	describe('The proxy factory', ()=> {
 		it('Returns a function', ()=> {
-			expect(proxyLaterFunction()).toEqual(jasmine.any(Function));
+			expect(createRouter()).toEqual(jasmine.any(Function));
 		});
 	});
 
-	describe('The proxy function', ()=> {
+	describe('The router function', ()=> {
 		let mockImplementation, mockCallStore, laterFunction, proxy;
 
 		beforeEach(()=> {
@@ -19,28 +19,28 @@ describe('proxyLaterFunction', ()=> {
 			mockCallStore = {
 				record : jasmine.createSpy('mockCallStore.record')
 			};
-			proxyLaterFunction._Promise = window.Promise;
+			createRouter._Promise = window.Promise;
 		});
 
 		it('Returns undefined if it cannot use Promises', ()=> {
-			proxyLaterFunction._Promise = undefined;
+			createRouter._Promise = undefined;
 
-			proxy = proxyLaterFunction(laterFunction, mockCallStore);
+			proxy = createRouter(laterFunction, mockCallStore);
 			expect(proxy()).toBeUndefined();
 		});
 
 		it('Returns a promise if it can use Promises', ()=> {
 			function MockPromise() {}
-			proxyLaterFunction._Promise = MockPromise;
+			createRouter._Promise = MockPromise;
 
-			proxy = proxyLaterFunction(laterFunction, mockCallStore);
+			proxy = createRouter(laterFunction, mockCallStore);
 			expect(proxy()).toEqual(jasmine.any(MockPromise));
 		});
 
 		describe('When the implementation does not yet exist', ()=> {
 			beforeEach(()=> {
 				laterFunction = new LaterFunction();
-				proxy = proxyLaterFunction(laterFunction, mockCallStore);
+				proxy = createRouter(laterFunction, mockCallStore);
 			});
 
 			it('the proxy records a call with the call store', ()=> {
@@ -81,7 +81,7 @@ describe('proxyLaterFunction', ()=> {
 				laterFunction = new LaterFunction();
 				mockImplementation = jasmine.createSpy('mockImplementation');
 				laterFunction.resolve(mockImplementation);
-				proxy = proxyLaterFunction(laterFunction, mockCallStore);
+				proxy = createRouter(laterFunction, mockCallStore);
 			});
 
 			it('calls that implementation', ()=> {

@@ -128,7 +128,7 @@ module.exports =    premock;
 var LaterFunction = require('./LaterFunction.js');
 var HeapCallStore = require('./HeapCallStore.js');
 var LocalCallStore = require('./LocalCallStore.js');
-var proxyLaterFunction = require('./proxyLaterFunction.js');
+var createRouter = require('./createRouter.js');
 var replayCalls = require('./replayCalls.js');
 var canUseLocalStorage = require('./canUseLocalStorage.js');
 
@@ -155,7 +155,7 @@ function createPremocker(callStore, pendingImplementation) {
 
     // Create a proxy for our upcoming function.
     // It will pass calls to the callstore until it can call the laterFunction
-	var proxy = proxyLaterFunction(laterFunction, callStore);
+	var proxy = createRouter(laterFunction, callStore);
 
     // Create a means to resolve the laterFunction
 	proxy.resolve = function resolvePremock(implementation) {
@@ -171,7 +171,7 @@ function createPremocker(callStore, pendingImplementation) {
 	return proxy;
 }
 
-},{"./HeapCallStore.js":1,"./LaterFunction.js":2,"./LocalCallStore.js":3,"./canUseLocalStorage.js":5,"./proxyLaterFunction.js":7,"./replayCalls.js":8}],5:[function(require,module,exports){
+},{"./HeapCallStore.js":1,"./LaterFunction.js":2,"./LocalCallStore.js":3,"./canUseLocalStorage.js":5,"./createRouter.js":7,"./replayCalls.js":8}],5:[function(require,module,exports){
 module.exports = canUseLocalStorage;
 
 // Expose dependencies for testing
@@ -209,17 +209,17 @@ function defer(fn) {
 	window.setTimeout(fn, 0);
 }
 },{}],7:[function(require,module,exports){
-module.exports = proxyLaterFunction;
+module.exports = createRouter;
 
 // Ghetto dependency injection
-proxyLaterFunction._Promise = window.Promise || null;
+createRouter._Promise = window.Promise || null;
 
 // Create a proxy for our future function.
 // The proxy will route calls to either the real implementation - if it exists -
 // or the call storage object.
-function proxyLaterFunction(laterFunction, callStore) {
+function createRouter(laterFunction, callStore) {
 	return function functionProxy() {
-		var Promise = proxyLaterFunction._Promise;
+		var Promise = createRouter._Promise;
 		var args = Array.prototype.slice.call(arguments);
 
 		if (laterFunction.existsYet) {
