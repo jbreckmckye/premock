@@ -32,7 +32,7 @@ function createPremocker(callStore, implementationPromise) {
 	var proxy = createFunctionProxy(maybeFunction.getImplementation, callStore);
 
 	proxy.resolve = function resolvePremock(implementation) {
-		maybeFunction.resolveImplementation(implementation);
+		maybeFunction.setImplementation(implementation);
 		replayCalls(callStore.getCalls(), implementation);
 	};
 

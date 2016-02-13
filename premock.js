@@ -107,7 +107,7 @@ module.exports = MaybeFunction;
 function MaybeFunction() {
 	var realFunction = null;
 
-	this.resolveImplementation = function(fn) {
+	this.setImplementation = function(fn) {
 		if (realFunction === null) { // is this guard strictly MaybeFunction's responsibility?
 			realFunction = fn;
 		}		
@@ -229,7 +229,7 @@ function createMockUsingStore(callStore, implementationPromise) {
 	var proxy = createProxy(maybeFunction.getImplementation, callStore);
 
 	proxy.resolve = function resolvePremock(implementation) {
-		maybeFunction.resolveImplementation(implementation);
+		maybeFunction.setImplementation(implementation);
 		replayCalls(callStore.getCalls(), implementation);
 	};
 

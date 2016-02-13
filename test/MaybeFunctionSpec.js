@@ -14,13 +14,13 @@ describe('MaybeFunction', ()=> {
 		expect(maybeFunction.getImplementation).toEqual(jasmine.any(Function));
 	});
 
-	it('has a resolveImplementation method', ()=> {
-		expect(maybeFunction.resolveImplementation).toEqual(jasmine.any(Function));
+	it('has a setImplementation method', ()=> {
+		expect(maybeFunction.setImplementation).toEqual(jasmine.any(Function));
 	});
 
-	it('resolveImplementation can take a function', ()=> {
+	it('setImplementation can take a function', ()=> {
 		expect(()=> {
-			maybeFunction.resolveImplementation(()=> {});
+			maybeFunction.setImplementation(()=> {});
 		}).not.toThrow();
 	});
 
@@ -29,14 +29,14 @@ describe('MaybeFunction', ()=> {
 	});
 
 	it('after the implementation is resolved, getImplementation returns the resolving function', ()=> {		
-		maybeFunction.resolveImplementation(mockImplementation);
+		maybeFunction.setImplementation(mockImplementation);
 		expect(maybeFunction.getImplementation()).toBe(mockImplementation);
 	});
 
 	it('does not allow the resolved implementation to be overwritten', ()=> {
 		const secondMockImplementation = ()=> {};
-		maybeFunction.resolveImplementation(mockImplementation);
-		maybeFunction.resolveImplementation(secondMockImplementation);
+		maybeFunction.setImplementation(mockImplementation);
+		maybeFunction.setImplementation(secondMockImplementation);
 		expect(maybeFunction.getImplementation()).toBe(mockImplementation);
 	});
 

@@ -1,15 +1,13 @@
 module.exports = MaybeFunction;
 
 function MaybeFunction() {
-	var realFunction = null;
+	var implementation = null;
 
-	this.resolveImplementation = function(fn) {
-		if (realFunction === null) { // is this guard strictly MaybeFunction's responsibility?
-			realFunction = fn;
-		}		
+	this.setImplementation = function(fn) {
+        implementation = fn;
 	};
 
 	this.getImplementation = function() {
-		return realFunction;
+		return implementation;
 	};
 }
