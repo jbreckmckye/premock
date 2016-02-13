@@ -5,7 +5,7 @@
   "main": "premock.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build" : "browserify src/premock.js -o premock.js -s 'premock'"
+    "build" : "browserify src/api.js -o premock.js -s 'premock'"
   },
   "repository": {
     "type": "git",
